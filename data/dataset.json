@@ -1,0 +1,41 @@
+{
+    "location": "Gualtar, Braga, Portugal",
+    "vehicles": [
+    {
+      "id": 1,
+      "name": "Peugeot e-208",
+      "driver": "João",
+      "capacity": 5,
+      "status": "IDLE",
+      "type": "eletric",
+      "battery_capacity": 45,
+      "current_battery": 40,
+      "battery_consumption": 0.15
+    },
+    {
+      "id": 2,
+      "name": "Audi A3",
+      "driver": "Maria",
+      "capacity": 5,
+      "status": "IDLE",
+      "type": "combustion",
+      "fuel_capacity": 40,
+      "current_fuel": 30,
+      "fuel_consumption": 0.07
+    },
+    {
+      "id": 3,
+      "name": "Toyota Prius",
+      "driver": "Carlos",
+      "capacity": 5,
+      "status": "IDLE",
+      "type": "hybrid",
+      "battery_capacity": 8,
+      "current_battery": 6,
+      "battery_consumption": 0.12,
+      "fuel_capacity": 40,
+      "current_fuel": 35,
+      "fuel_consumption": 0.06
+    }
+  ]
+}

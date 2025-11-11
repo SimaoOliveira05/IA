@@ -6,39 +6,29 @@ class Graph:
     def __init__(self, directed=False):
         self.nodes = []
         self.edges = {}
-        self.osm_to_internal = {} # usado para mapear o id OSM para o next_id 
         self.directed = directed
         self.next_id = 0
 
-    def add_node(self, x, y, node_type="generic", capacity=0, osm_id=None):
+    def add_node(self, x, y, node_type="generic", capacity=0):
         position = Position(x, y)
         node = Node(self.next_id, position, node_type=node_type, capacity=capacity)
         node.set_id(self.next_id)
-        node.osm_id = osm_id
 
         self.nodes.append(node)
         self.edges[self.next_id] = []
-        
-        # Atualiza os dicionários de mapeamento
-        if osm_id is not None:
-            self.osm_to_internal[osm_id] = self.next_id
 
         self.next_id += 1
         return node
     
-
-
     def get_node(self, node_id):
         """Retorna o nó correspondente ao ID interno (int)."""
         if isinstance(node_id, int) and 0 <= node_id < len(self.nodes):
             return self.nodes[node_id]
         return None
 
-
-
     def add_edge(self, id1, id2, distance=None, edge_speed=50,traffic_factor=1.0, open=True):
         """
-        Adiciona uma aresta entre dois nós (usando IDs internos).
+        Adiciona uma aresta entre dois nós.
 
         Args:
             id1, id2 (int): IDs internos do primeiro nó e do segundo nó

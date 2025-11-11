@@ -2,7 +2,7 @@ from graph.graph import Graph
 from graph.position import Position  
 import osmnx as ox
 
-def create_location_graph(place_name="Gualtar, Braga, Portugal"): # mudar depois recebendo um json com a location
+def create_location_graph(place_name): 
     """
     Cria um grafo da rede viária de uma dada localização, usando coordenadas projetadas (em metros).
     O grafo é convertido para a estrutura definida Graph() com nós e arestas.
@@ -24,16 +24,18 @@ def create_location_graph(place_name="Gualtar, Braga, Portugal"): # mudar depois
     nodes, edges = ox.graph_to_gdfs(G_proj)
 
     graph = Graph()
-
+    osm_to_internal = {} # usado para mapear o id OSM para o node id
+    
     # Adiciona os nós
     for osm_id, data in nodes.iterrows():
-        graph.add_node(data['x'], data['y'], osm_id=osm_id)
+        node = graph.add_node(data['x'], data['y'])
+        osm_to_internal[osm_id] = node.id
 
     # Adiciona as arestas
     for (u, v, key), edge in edges.iterrows():
-        if u in graph.osm_to_internal and v in graph.osm_to_internal:
-            id_u = graph.osm_to_internal[u]
-            id_v = graph.osm_to_internal[v]
+        if u in osm_to_internal and v in osm_to_internal:
+            id_u = osm_to_internal[u]
+            id_v = osm_to_internal[v]
             length = edge.get("length", None)
             graph.add_edge(id_u, id_v, distance=length, edge_speed=edge.get("speed_kph", 50))
     
