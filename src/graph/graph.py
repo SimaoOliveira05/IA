@@ -141,13 +141,44 @@ class Graph:
         for node in self.nodes:
             color = node_colors.get(node.node_type, "black")
             size = 30 + (node.capacity * 4 if hasattr(node, "capacity") else 0)
-            ax.scatter(node.position.x, node.position.y, color=color, s=size, zorder=3, 
-                      edgecolors='black', linewidth=0.5)
+            
+            # Desenha o nó com forma especial dependendo do tipo
+            if node.node_type == "fuel":
+                # Bomba de gasolina - quadrado vermelho
+                ax.scatter(node.position.x, node.position.y, color='red', s=size*1.5, 
+                          marker='s', zorder=3, edgecolors='darkred', linewidth=2)
+                # Adiciona texto "GAS"
+                ax.text(node.position.x, node.position.y - 4, 'GAS', 
+                       fontsize=6, color='darkred', ha='center', va='top',
+                       fontweight='bold', zorder=5,
+                       bbox=dict(facecolor='white', alpha=0.9, edgecolor='red', 
+                                boxstyle='round,pad=0.2', linewidth=1))
+            elif node.node_type == "charging":
+                # Posto de carregamento - triângulo laranja
+                ax.scatter(node.position.x, node.position.y, color='orange', s=size*1.5, 
+                          marker='^', zorder=3, edgecolors='darkorange', linewidth=2)
+                # Adiciona texto "CHG"
+                ax.text(node.position.x, node.position.y - 4, 'CHG', 
+                       fontsize=6, color='darkorange', ha='center', va='top',
+                       fontweight='bold', zorder=5,
+                       bbox=dict(facecolor='white', alpha=0.9, edgecolor='orange', 
+                                boxstyle='round,pad=0.2', linewidth=1))
+            else:
+                # Nó genérico
+                ax.scatter(node.position.x, node.position.y, color=color, s=size, zorder=3, 
+                          edgecolors='black', linewidth=0.5)
+            
             # Colocar ID dos nós - destacado e legível
             if show_labels:
+                # Para fuel e charging stations, coloca o ID acima do label
+                if node.node_type in ["fuel", "charging"]:
+                    y_offset = 6  # Posiciona acima do GAS/CHG
+                else:
+                    y_offset = 0
+                    
                 ax.text(
                     node.position.x, 
-                    node.position.y, 
+                    node.position.y + y_offset, 
                     str(node.id), 
                     fontsize=4,  # Diminuído para ficar mais discreto
                     color="black", 

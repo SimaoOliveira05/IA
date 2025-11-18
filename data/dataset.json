@@ -11,7 +11,7 @@
   "start_point": 0,
       "battery_capacity": 45,
       "current_battery": 40,
-      "battery_consumption": 0.15
+      "battery_consumption": 16
     },
     {
       "id": 2,
@@ -23,7 +23,7 @@
       "type": "combustion",
       "fuel_capacity": 40,
       "current_fuel": 30,
-      "fuel_consumption": 0.07
+      "fuel_consumption": 15
     },
     {
       "id": 3,
@@ -35,10 +35,10 @@
   "start_point": 0,
       "battery_capacity": 8,
       "current_battery": 6,
-      "battery_consumption": 0.12,
+      "battery_consumption": 18,
       "fuel_capacity": 40,
       "current_fuel": 35,
-      "fuel_consumption": 0.06
+      "fuel_consumption": 20
     }
   ],
     "requests": [
@@ -162,5 +162,70 @@
       "multiple_people": false,
       "passengers": 1
     }
-  ]
+  ],
+    "fuel_stations": [
+        {
+            "node_id": 10,
+            "_comment": "Bomba de gasolina na zona central"
+        },
+        {
+            "node_id": 25,
+            "_comment": "Bomba de gasolina na zona norte"
+        },
+        {
+            "node_id": 40,
+            "_comment": "Bomba de gasolina na zona oeste"
+        }
+    ],
+    "charging_stations": [
+        {
+            "node_id": 5,
+            "_comment": "Posto de carregamento elétrico na zona sul"
+        },
+        {
+            "node_id": 35,
+            "_comment": "Posto de carregamento elétrico na zona leste"
+        }
+    ],
+    "events": {
+        "weather_zones": [
+            {
+                "nodes": [5, 6, 7, 8, 9, 10],
+                "condition": "rain",
+                "_comment": "Zona centro com chuva - aumenta tempo em 30%"
+            },
+            {
+                "nodes": [20, 21, 22, 23],
+                "condition": "fog",
+                "_comment": "Zona norte com nevoeiro - aumenta tempo em 20%"
+            },
+            {
+                "nodes": [15, 16, 17],
+                "condition": "heavy_rain",
+                "_comment": "Zona sul com chuva forte - aumenta tempo em 50%"
+            }
+        ],
+        "closed_roads": [
+            {
+                "from": 12,
+                "to": 13,
+                "_comment": "Estrada principal fechada por obras"
+            },
+            {
+                "from": 18,
+                "to": 19,
+                "_comment": "Estrada secundária fechada por acidente"
+            }
+        ],
+        "_info": {
+            "weather_conditions": [
+                "clear: sem impacto (1.0x)",
+                "rain: +30% tempo (1.3x)",
+                "heavy_rain: +50% tempo (1.5x)",
+                "fog: +20% tempo (1.2x)",
+                "snow: +60% tempo (1.6x)"
+            ],
+            "description": "Eventos são aplicados no início da simulação e permanecem durante todo o período"
+        }
+    }
 }

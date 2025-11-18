@@ -56,6 +56,20 @@ class Menu:
         Returns:
             dict: Configurações de visualização
         """
+        print("\n--- Modo de Execução ---")
+        print("1 - Com visualização (mais lento, interativo)")
+        print("2 - Sem visualização (RÁPIDO, apenas estatísticas)")
+        
+        mode_choice = input("\nEscolha [1/2] (padrão: 1): ").strip() or '1'
+        
+        if mode_choice == '2':
+            return {
+                'headless': True,
+                'show_times': False,
+                'show_distances': False
+            }
+        
+        # Modo com visualização
         print("\n--- Opções de Visualização ---")
         print("[S]im - Mostrar tempo de viagem nas arestas")
         print("[N]ão - Mostrar apenas distâncias")
@@ -64,6 +78,7 @@ class Menu:
         show_times = choice in ['s', 'sim', 'y', 'yes']
         
         return {
+            'headless': False,
             'show_times': show_times,
             'show_distances': not show_times
         }

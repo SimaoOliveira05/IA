@@ -82,6 +82,9 @@ class DFS(SearchAlgorithm):
             
             edges = graph.edges.get(current, [])
             for edge in edges:
+                # Ignora estradas fechadas
+                if not edge.get("open", True):
+                    continue
                 if edge["target"] not in visited:
                     stack.append((edge["target"], path + [edge["target"]]))
         
@@ -135,6 +138,9 @@ class BFS(SearchAlgorithm):
             
             edges = graph.edges.get(current, [])
             for edge in edges:
+                # Ignora estradas fechadas
+                if not edge.get("open", True):
+                    continue
                 neighbor = edge["target"]
                 if neighbor not in visited:
                     visited.add(neighbor)
@@ -218,6 +224,10 @@ class Dijkstra(SearchAlgorithm):
             # Explora vizinhos
             edges = graph.edges.get(current, [])
             for edge in edges:
+                # Ignora estradas fechadas
+                if not edge.get("open", True):
+                    continue
+                    
                 neighbor = edge["target"]
                 if neighbor in visited:
                     continue
@@ -242,22 +252,6 @@ class Dijkstra(SearchAlgorithm):
             node = previous[node]
         path.reverse()
         return path
-
-
-# Funções wrapper para compatibilidade com código antigo
-def simple_search_algorithm(start_position, end_position, graph):
-    """Wrapper para DFS (compatibilidade)."""
-    return DFS.find_path(start_position, end_position, graph)
-
-
-def bfs_search_algorithm(start_position, end_position, graph):
-    """Wrapper para BFS (compatibilidade)."""
-    return BFS.find_path(start_position, end_position, graph)
-
-
-def dijkstra_search_algorithm(start_position, end_position, graph):
-    """Wrapper para Dijkstra (compatibilidade)."""
-    return Dijkstra.find_path(start_position, end_position, graph)
 
 
 # Dicionário para fácil acesso

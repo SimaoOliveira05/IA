@@ -30,7 +30,8 @@ class Visualizer:
         
         # Referências aos elementos visuais
         self.fig = None
-        self.ax = None
+        self.ax_graph = None  # Eixo para o grafo
+        self.ax_stats = None  # Eixo para as estatísticas
         self.taxi_markers = []
         self.taxi_labels = []
         self.pickup_markers = []
@@ -41,12 +42,23 @@ class Visualizer:
         self.stats_text = None
     
     def setup_figure(self):
-        """Cria e configura a figura."""
-        self.fig, self.ax = plt.subplots(figsize=(20, 18))
+        """Cria e configura a figura com dois painéis."""
+        # Cria figura com dois subplots lado a lado
+        self.fig = plt.figure(figsize=(24, 12))
+        
+        # Painel esquerdo: Grafo (70% da largura)
+        self.ax_graph = plt.subplot2grid((1, 10), (0, 0), colspan=7)
+        
+        # Painel direito: Estatísticas (30% da largura)
+        self.ax_stats = plt.subplot2grid((1, 10), (0, 7), colspan=3)
+        self.ax_stats.axis('off')
+        
+        # Ajusta o espaçamento entre os painéis
+        plt.subplots_adjust(left=0.05, right=0.98, top=0.95, bottom=0.05, wspace=0.3)
         
         # Desenha o grafo estático (apenas uma vez)
         self.simulation.graph.draw(
-            self.ax, 
+            self.ax_graph, 
             show_times=self.show_times, 
             show_distances=self.show_distances, 
             requests=None
@@ -62,37 +74,37 @@ class Visualizer:
         """Cria marcadores para táxis."""
         for taxi in self.simulation.vehicles:
             # Marcador
-            marker, = self.ax.plot([], [], 'o', markersize=10, zorder=6)
+            marker, = self.ax_graph.plot([], [], 'o', markersize=10, zorder=6)
             self.taxi_markers.append(marker)
             
             # Label
-            label = self.ax.text(0, 0, '', fontsize=8, ha='center', zorder=7)
+            label = self.ax_graph.text(0, 0, '', fontsize=8, ha='center', zorder=7)
             self.taxi_labels.append(label)
     
     def _create_request_markers(self):
         """Cria marcadores para requests (pickup e dropoff)."""
         for req in self.simulation.requests:
             # Pickup marker (azul)
-            p_marker, = self.ax.plot(
+            p_marker, = self.ax_graph.plot(
                 [], [], '*', color='blue', markersize=15,
                 markeredgecolor='white', markeredgewidth=1.5, zorder=7
             )
             self.pickup_markers.append(p_marker)
             
-            p_label = self.ax.text(
+            p_label = self.ax_graph.text(
                 0, 0, '', fontsize=8, ha='center', 
                 color='blue', fontweight='bold', zorder=8
             )
             self.pickup_labels.append(p_label)
             
             # Dropoff marker (laranja)
-            d_marker, = self.ax.plot(
+            d_marker, = self.ax_graph.plot(
                 [], [], '*', color='orange', markersize=15,
                 markeredgecolor='white', markeredgewidth=1.5, zorder=7
             )
             self.dropoff_markers.append(d_marker)
             
-            d_label = self.ax.text(
+            d_label = self.ax_graph.text(
                 0, 0, '', fontsize=8, ha='center',
                 color='orange', fontweight='bold', zorder=8
             )
@@ -100,17 +112,17 @@ class Visualizer:
     
     def _create_text_elements(self):
         """Cria elementos de texto (título e estatísticas)."""
-        # Título
-        self.title_text = self.ax.text(
-            0.5, 1.02, '', transform=self.ax.transAxes,
+        # Título no painel do grafo
+        self.title_text = self.ax_graph.text(
+            0.5, 1.02, '', transform=self.ax_graph.transAxes,
             ha='center', fontsize=14, fontweight='bold'
         )
         
-        # Estatísticas
-        self.stats_text = self.ax.text(
-            0.02, 0.98, '', transform=self.ax.transAxes,
-            ha='left', va='top', fontsize=10,
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8)
+        # Estatísticas no painel direito
+        self.stats_text = self.ax_stats.text(
+            0.05, 0.95, '', transform=self.ax_stats.transAxes,
+            ha='left', va='top', fontsize=11, family='monospace',
+            bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.9, pad=1)
         )
     
     def update_taxi_markers(self):
@@ -139,6 +151,8 @@ class Visualizer:
     
     def update_request_markers(self):
         """Atualiza marcadores de requests (pickup/dropoff)."""
+        current_time = self.simulation.current_time
+        
         for req, p_marker, p_label, d_marker, d_label in zip(
             self.simulation.requests,
             self.pickup_markers,
@@ -146,7 +160,15 @@ class Visualizer:
             self.dropoff_markers,
             self.dropoff_labels
         ):
-            if req.status == 'pending' or req.status == 'assigned':
+            # Só mostra o request se já chegou a sua hora
+            if req.requested_time > current_time:
+                # Request ainda não foi feito - esconde tudo
+                p_marker.set_data([], [])
+                p_label.set_text('')
+                d_marker.set_data([], [])
+                d_label.set_text('')
+                
+            elif req.status == 'pending' or req.status == 'assigned':
                 # Mostra pickup point
                 p_marker.set_data([req.start_point.x], [req.start_point.y])
                 p_label.set_position((req.start_point.x, req.start_point.y + 3))
@@ -175,21 +197,92 @@ class Visualizer:
         """Atualiza título e estatísticas."""
         # Título com tempo
         self.title_text.set_text(
-            f"Simulação - Tempo: {self.simulation.get_time_string()}"
+            f"Simulação UberUM - Tempo: {self.simulation.get_time_string()}"
         )
         
-        # Estatísticas
+        # Contadores de táxis por estado
+        idle_vehicles = []
+        traveling_vehicles = []
+        for v in self.simulation.vehicles:
+            if v.status.name == 'IDLE':
+                idle_vehicles.append(v)
+            elif v.status.name == 'TRAVELING':
+                traveling_vehicles.append(v)
+        
+        # Estatísticas detalhadas
         stats = self.simulation.stats
-        stats_str = (
-            f"Requests:\n"
-            f"  Completados: {stats['requests_completed']}\n"
-            f"  Em andamento: {stats.get('requests_in_progress', 0)}\n"
-            f"  Pendentes: {stats['requests_pending']}\n"
-            f"  Total: {len(self.simulation.requests)}\n"
-            f"\n"
-            f"Táxis IDLE: {len(self.simulation.get_available_vehicles())}"
-        )
+        stats_str = "=== ESTATISTICAS ===\n\n"
+        
+        # Requests
+        stats_str += "PEDIDOS\n"
+        stats_str += f"  [OK] Completados: {stats['requests_completed']}\n"
+        stats_str += f"  [>>] Em andamento: {stats.get('requests_in_progress', 0)}\n"
+        stats_str += f"  [...] Pendentes: {stats['requests_pending']}\n"
+        stats_str += f"  Total: {len(self.simulation.requests)}\n"
+        stats_str += "\n"
+        
+        # Táxis
+        stats_str += "TAXIS\n"
+        stats_str += f"  [ ] IDLE: {len(idle_vehicles)}\n"
+        stats_str += f"  [*] Viajando: {len(traveling_vehicles)}\n"
+        stats_str += f"  Total: {len(self.simulation.vehicles)}\n"
+        stats_str += "\n"
+        
+        # Detalhes dos táxis
+        stats_str += "=== VEICULOS ===\n\n"
+        for v in self.simulation.vehicles:
+            status_icon = "[ ]" if v.status.name == "IDLE" else "[*]"
+            stats_str += f"{status_icon} Taxi {v.id} - {v.name}\n"
+            stats_str += f"     Motorista: {v.driver}\n"
+            stats_str += f"     Status: {v.status.name}\n"
+            
+            # Energia/Combustível
+            from vehicle.vehicle import Eletric, Combustion, Hybrid
+            if isinstance(v.vehicle_type, Eletric):
+                battery_pct = v.vehicle_type.battery_percentage()
+                battery_bar = self._get_progress_bar(battery_pct)
+                stats_str += f"     Bateria: {battery_bar} {battery_pct:.1f}%\n"
+            elif isinstance(v.vehicle_type, Combustion):
+                fuel_pct = v.vehicle_type.fuel_percentage()
+                fuel_bar = self._get_progress_bar(fuel_pct)
+                stats_str += f"     Combustivel: {fuel_bar} {fuel_pct:.1f}%\n"
+            elif isinstance(v.vehicle_type, Hybrid):
+                battery_pct = v.vehicle_type.battery_percentage()
+                fuel_pct = v.vehicle_type.fuel_percentage()
+                battery_bar = self._get_progress_bar(battery_pct)
+                fuel_bar = self._get_progress_bar(fuel_pct)
+                stats_str += f"     Bateria: {battery_bar} {battery_pct:.1f}%\n"
+                stats_str += f"     Combustivel: {fuel_bar} {fuel_pct:.1f}%\n"
+            
+            if v.current_request:
+                stats_str += f"     Request: #{v.current_request.id}\n"
+                stats_str += f"     Fase: {v.phase}\n"
+            stats_str += "\n"
+        
         self.stats_text.set_text(stats_str)
+    
+    def _get_progress_bar(self, percentage: float, width: int = 10) -> str:
+        """
+        Cria uma barra de progresso ASCII.
+        
+        Args:
+            percentage: Percentagem (0-100)
+            width: Largura da barra em caracteres
+            
+        Returns:
+            String com a barra de progresso
+        """
+        filled = int((percentage / 100) * width)
+        empty = width - filled
+        
+        if percentage > 60:
+            bar_char = '='
+        elif percentage > 30:
+            bar_char = '-'
+        else:
+            bar_char = '.'
+        
+        return f"[{bar_char * filled}{' ' * empty}]"
     
     def get_all_artists(self):
         """Retorna lista de todos os artistas para blit."""

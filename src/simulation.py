@@ -3,6 +3,14 @@ Módulo de simulação do sistema de táxis.
 Responsável pela lógica de negócio da simulação.
 """
 
+from refuel_helper import (
+    needs_refuel, 
+    get_refuel_time, 
+    find_nearest_station, 
+    get_station_type_for_vehicle,
+    calculate_total_distance
+)
+
 class Simulation:
     """
     Gerencia a lógica de simulação de táxis e requests.
@@ -64,6 +72,7 @@ class Simulation:
     def assign_request_to_vehicle(self, request):
         """
         Atribui um request ao melhor veículo disponível.
+        Considera necessidade de abastecimento na escolha.
         
         Args:
             request: Request a ser atribuído
@@ -79,6 +88,7 @@ class Simulation:
         best_vehicle = None
         best_cost = float('inf')
         best_paths = None
+        best_refuel_info = None
         
         for vehicle in available_vehicles:
             # Caminho: veículo → pickup
@@ -95,20 +105,80 @@ class Simulation:
                 self.graph
             )
             
+            # Calcula distância total da viagem completa
+            total_distance = calculate_total_distance(self.graph, path1)
+            total_distance += calculate_total_distance(self.graph, path2)
+            
+            # Verifica se precisa abastecer
+            refuel_needed = needs_refuel(vehicle, total_distance)
+            refuel_time = 0
+            refuel_station = None
+            refuel_path = None
+            
+            if refuel_needed:
+                # Encontra estação mais próxima
+                station_type = get_station_type_for_vehicle(vehicle)
+                refuel_station = find_nearest_station(
+                    self.graph, 
+                    vehicle.current_position, 
+                    station_type
+                )
+                
+                if refuel_station:
+                    # Calcula caminho até a estação
+                    station_cost, station_time, station_path = self.search_algorithm(
+                        vehicle.current_position,
+                        refuel_station.position,
+                        self.graph
+                    )
+                    
+                    # Recalcula caminho da estação até o pickup
+                    cost1_new, time1_new, path1_new = self.search_algorithm(
+                        refuel_station.position,
+                        request.start_point,
+                        self.graph
+                    )
+                    
+                    # Tempo total de abastecimento (baseado no tipo de estação)
+                    refuel_time = get_refuel_time(vehicle, station_type)
+                    
+                    # Ajusta custos
+                    cost1 = station_cost + cost1_new
+                    time1 = station_time + refuel_time + time1_new
+                    
+                    # Atualiza caminhos
+                    refuel_path = station_path
+                    path1 = path1_new
+            
             total_cost = cost1 + cost2
             
             if total_cost < best_cost:
                 best_cost = total_cost
                 best_vehicle = vehicle
                 best_paths = (time1, time2, path1, path2)
+                best_refuel_info = (refuel_needed, refuel_station, refuel_path, refuel_time, station_type if refuel_needed else None)
         
         if best_vehicle and best_paths:
             time_to_pickup, trip_time, path_to_pickup, path_to_dest = best_paths
+            refuel_needed, refuel_station, refuel_path, refuel_time, station_type = best_refuel_info
+            
+            # Se precisa abastecer, adiciona informação ao veículo
+            if refuel_needed and refuel_station and refuel_path:
+                print(f"⚠ Veículo {best_vehicle.id} precisa abastecer!")
+                print(f"   Estação: Nó {refuel_station.id} ({refuel_station.node_type})")
+                print(f"   Tempo de abastecimento: {refuel_time:.1f} min")
+                
+                # Passa informação de abastecimento (incluindo tipo de estação)
+                refuel_info = (refuel_path, refuel_station.id, refuel_time, station_type)
+            else:
+                refuel_info = None
+            
             best_vehicle.assign(
                 request, 
                 path_to_pickup, 
                 path_to_dest, 
-                self.graph
+                self.graph,
+                refuel_info=refuel_info
             )
             
             # Atualiza estatísticas
