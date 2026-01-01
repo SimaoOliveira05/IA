@@ -170,9 +170,15 @@ class Visualizer:
                 
             elif req.status == 'pending' or req.status == 'assigned':
                 # Mostra pickup point
+                # Cor diferente para eco-friendly (verde)
+                marker_color = 'green' if req.eco_friendly else 'blue'
+                p_marker.set_color(marker_color)
                 p_marker.set_data([req.start_point.x], [req.start_point.y])
                 p_label.set_position((req.start_point.x, req.start_point.y + 3))
-                p_label.set_text(f"P{req.id}")
+                p_label.set_color(marker_color)
+                # Adiciona indicador ECO ao label
+                label_text = f"P{req.id}" if req.eco_friendly else f"P{req.id}"
+                p_label.set_text(label_text)
                 # Esconde dropoff
                 d_marker.set_data([], [])
                 d_label.set_text('')

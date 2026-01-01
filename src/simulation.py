@@ -10,6 +10,7 @@ from refuel_helper import (
     get_station_type_for_vehicle,
     calculate_total_distance
 )
+from vehicle.vehicle_types import Eletric
 
 class Simulation:
     """
@@ -66,6 +67,25 @@ class Simulation:
         """Retorna lista de veículos disponíveis (IDLE)."""
         return [v for v in self.vehicles if v.status.name == 'IDLE']
     
+    def get_available_vehicles_for_request(self, request):
+        """
+        Retorna lista de veículos disponíveis e compatíveis com o request.
+        Se o cliente preferir eco-friendly, apenas veículos elétricos são considerados.
+        
+        Args:
+            request: Request a ser verificado
+            
+        Returns:
+            Lista de veículos disponíveis e compatíveis
+        """
+        available = self.get_available_vehicles()
+        
+        # Filtra por preferência ambiental
+        if request.eco_friendly:
+            # Apenas veículos elétricos
+            available = [v for v in available if isinstance(v.vehicle_type, Eletric)]
+            
+        return available
 
 
     
@@ -73,6 +93,7 @@ class Simulation:
         """
         Atribui um request ao melhor veículo disponível.
         Considera necessidade de abastecimento na escolha.
+        Respeita preferências ambientais do cliente.
         
         Args:
             request: Request a ser atribuído
@@ -80,9 +101,11 @@ class Simulation:
         Returns:
             Vehicle atribuído ou None se não houver disponível
         """
-        available_vehicles = self.get_available_vehicles()
+        available_vehicles = self.get_available_vehicles_for_request(request)
         
         if not available_vehicles:
+            if request.eco_friendly:
+                print(f"⚠️  Request {request.id} (ECO-FRIENDLY) não pode ser atendido: sem veículos elétricos disponíveis")
             return None
         
         best_vehicle = None

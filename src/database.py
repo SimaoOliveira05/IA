@@ -100,6 +100,7 @@ def load_dataset(dataset_path) -> Database:
             requested_time=req["requested_time"],
             multiple_people=req["multiple_people"],
             passengers=req["passengers"],
+            eco_friendly=req.get("eco_friendly", False),  # Preferência ambiental (padrão: False)
             id=req.get("id", None)
         ))
     
