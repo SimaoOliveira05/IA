@@ -1,51 +1,61 @@
 """
-Implementação do algoritmo A* com suporte a múltiplos critérios de otimização:
-- 'distance': Caminho mais curto (padrão)
-- 'time': Caminho mais rápido (considera limites de velocidade e trânsito)
-- 'cost': Menor custo operacional (combinação de distância e tempo)
+Implementação do algoritmo A* com suporte a múltiplos critérios de heurística:
+- 'distance': Heurística de distância euclidiana
+- 'time': Heurística de tempo estimado (considera clima/trânsito)
+- 'cost': Heurística de custo operacional
+- 'combined': Heurística combinada
+
+IMPORTANTE: O custo g(n) das arestas é DISTÂNCIA (em metros).
+A heurística h(n) varia conforme o critério escolhido.
+Os algoritmos informados podem usar heurísticas que consideram tempo/clima/trânsito
+para encontrar caminhos mais inteligentes.
 """
-from typing import Any, List, Tuple, Optional
+from typing import List, Tuple
 from graph.graph import Graph
 from graph.position import Position
 import heapq
+import itertools
 
 # Importa preços de energia/combustível
 from algorithms.informed.heuristics import calculate_heuristic
 
-def get_edge_weight(edge: dict, criterion: str) -> float:
-    """Retorna o peso g(n) da aresta baseado no critério."""
-    if criterion == 'distance':
-        return edge["distance"]
-    elif criterion == 'time':
-        return edge.get("time", 0.0)  # Tempo em segundos (já inclui trânsito)
-    elif criterion == 'cost':
-        # Custo Operacional = (Km * Custo_Km) + (Minutos * Custo_Min)
-        dist_km = edge["distance"] / 1000.0
-        time_min = edge.get("time", 0.0) / 60.0
-        return (dist_km * COST_PER_KM) + (time_min * COST_PER_MIN)
-    return edge["distance"]
-
-
-def a_star(start: Position, goal: Position, graph: Graph, criterion: str = 'distance') -> Tuple[float, float, List[int]]:
+def a_star(start: Position, goal: Position, graph: Graph, criterion: str = 'distance', 
+           event_manager=None, current_time: int = None) -> Tuple[float, float, List[int]]:
+    """
+    A* Search - usa DISTÂNCIA como custo g(n) das arestas, com heurística variável h(n).
+    
+    Args:
+        start: Posição inicial
+        goal: Posição objetivo
+        graph: Grafo com o mapa
+        criterion: Tipo de heurística ('distance', 'time', 'cost', 'combined', etc.)
+        event_manager: Gestor de eventos (opcional, para heurísticas que consideram clima/trânsito)
+        current_time: Tempo atual em minutos (opcional, usado para verificar intervalos de eventos)
+    
+    Returns:
+        Tuple[float, float, List[int]]: (distância total em metros, tempo total em minutos, caminho)
+    """
     start_node = graph.find_closest_node(start)
     goal_node = graph.find_closest_node(goal)
     
-    # Priority Queue armazena (f_score, node)
+    # Priority Queue armazena (f_score, counter, node)
     open_set = []
+    counter = itertools.count()  # Contador para desempate
     
     # Inicializa scores
     g_score = {node.id: float('inf') for node in graph.nodes}
     g_score[start_node.id] = 0
     
-    h_start = calculate_heuristic(start_node.position, goal_node.position, criterion)
+    h_start = calculate_heuristic(start_node.position, goal_node.position, criterion, 
+                                   event_manager=event_manager, node_id=start_node.id, current_time=current_time)
     f_score = {node.id: float('inf') for node in graph.nodes}
     f_score[start_node.id] = h_start
     
-    heapq.heappush(open_set, (f_score[start_node.id], start_node))
+    heapq.heappush(open_set, (f_score[start_node.id], next(counter), start_node))
     came_from = {}
     
     while open_set:
-        _, current = heapq.heappop(open_set)
+        _, _, current = heapq.heappop(open_set)
         
         if current.id == goal_node.id:
             path = []
@@ -61,14 +71,19 @@ def a_star(start: Position, goal: Position, graph: Graph, criterion: str = 'dist
             if not edge.get("open", True):
                 continue
             neighbor = graph.get_node(edge["target"])
-            # Calcula g(n) tentativo usando a função de peso correta
-            weight = get_edge_weight(edge, criterion)
-            tentative_g_score = g_score[current.id] + weight
+            
+            # g(n) é DISTÂNCIA (em metros)
+            edge_distance = edge.get("distance", 0.0)
+            tentative_g_score = g_score[current.id] + edge_distance
+            
             if tentative_g_score < g_score[neighbor.id]:
                 came_from[neighbor.id] = current
                 g_score[neighbor.id] = tentative_g_score
-                h_score = calculate_heuristic(neighbor.position, goal_node.position, criterion)
+                
+                # h(n) varia conforme o critério da heurística
+                h_score = calculate_heuristic(neighbor.position, goal_node.position, criterion,
+                                              event_manager=event_manager, node_id=neighbor.id, current_time=current_time)
                 f_score[neighbor.id] = tentative_g_score + h_score
-                heapq.heappush(open_set, (f_score[neighbor.id], neighbor))
+                heapq.heappush(open_set, (f_score[neighbor.id], next(counter), neighbor))
                 
     return float('inf'), float('inf'), []

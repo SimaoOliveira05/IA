@@ -22,6 +22,29 @@ class VehicleType(ABC):
     def get_energy_info(self) -> str:
         """Retorna informação sobre o estado da energia."""
         pass
+    
+    @abstractmethod
+    def calculate_emissions(self, distance: float) -> float:
+        """
+        Calcula as emissões de CO₂ para uma dada distância.
+        
+        Args:
+            distance: Distância em metros
+            
+        Returns:
+            float: Emissões de CO₂ em gramas
+        """
+        pass
+    
+    @abstractmethod
+    def get_emissions_rate(self) -> float:
+        """
+        Retorna a taxa de emissões do veículo.
+        
+        Returns:
+            float: Emissões em g CO₂/km
+        """
+        pass
 
 
 class Eletric(VehicleType):
@@ -63,7 +86,27 @@ class Eletric(VehicleType):
     def get_energy_info(self) -> str:
         """Retorna informação sobre o estado da energia."""
         return f"Bateria: {self.battery_percentage():.1f}%"
-
+    
+    def calculate_emissions(self, distance: float) -> float:
+        """
+        Veículos elétricos não têm emissões diretas.
+        
+        Args:
+            distance: Distância em metros
+            
+        Returns:
+            float: 0.0 (sem emissões)
+        """
+        return 0.0
+    
+    def get_emissions_rate(self) -> float:
+        """
+        Veículos elétricos não têm emissões diretas.
+        
+        Returns:
+            float: 0.0 g CO₂/km
+        """
+        return 0.0
 
 class Combustion(VehicleType):
     """
@@ -104,7 +147,30 @@ class Combustion(VehicleType):
     def get_energy_info(self) -> str:
         """Retorna informação sobre o estado da energia."""
         return f"Combustível: {self.fuel_percentage():.1f}%"
-
+    
+    def calculate_emissions(self, distance: float) -> float:
+        """
+        Calcula as emissões de CO₂ para veículos a combustão.
+        Média de 120 g CO₂/km para veículos a gasolina.
+        
+        Args:
+            distance: Distância em metros
+            
+        Returns:
+            float: Emissões de CO₂ em gramas
+        """
+        distance_km = distance / 1000
+        emissions_per_km = 120.0  # g CO₂/km (média para gasolina)
+        return emissions_per_km * distance_km
+    
+    def get_emissions_rate(self) -> float:
+        """
+        Retorna a taxa de emissões do veículo a combustão.
+        
+        Returns:
+            float: 120.0 g CO₂/km
+        """
+        return 120.0
 
 class Hybrid(VehicleType):
     """
@@ -174,3 +240,42 @@ class Hybrid(VehicleType):
     def get_energy_info(self) -> str:
         """Retorna informação sobre o estado da energia."""
         return f"Bateria: {self.battery_percentage():.1f}% | Combustível: {self.fuel_percentage():.1f}%"
+    
+    def calculate_emissions(self, distance: float) -> float:
+        """
+        Calcula as emissões de CO₂ para veículos híbridos.
+        Apenas emite CO₂ quando usa combustível (após bateria acabar).
+        
+        Args:
+            distance: Distância em metros
+            
+        Returns:
+            float: Emissões de CO₂ em gramas
+        """
+        distance_km = distance / 1000
+        
+        # Calcula quanto pode percorrer com bateria
+        battery_distance_km = self.current_battery / self.battery_consumption if self.battery_consumption > 0 else 0
+        
+        # Se tem bateria suficiente, não emite
+        if battery_distance_km >= distance_km:
+            return 0.0
+        
+        # Se não, emite apenas pela parte em combustível
+        fuel_distance_km = distance_km - battery_distance_km
+        emissions_per_km = 90.0  # g CO₂/km (híbridos são mais eficientes)
+        return emissions_per_km * fuel_distance_km
+    
+    def get_emissions_rate(self) -> float:
+        """
+        Retorna a taxa média de emissões do veículo híbrido.
+        Depende do estado da bateria.
+        
+        Returns:
+            float: Emissões em g CO₂/km (0 se tem bateria, 90 se não)
+        """
+        # Se tem bateria, pode rodar sem emissões
+        if self.current_battery > 0:
+            return 0.0
+        # Se não tem bateria, usa combustível
+        return 90.0

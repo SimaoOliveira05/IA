@@ -18,7 +18,7 @@ class Simulation:
     Separada da visualização para melhor modularização.
     """
     
-    def __init__(self, database, search_algorithm, time_step=1):
+    def __init__(self, database, search_algorithm, time_step=1, heuristic=None):
         """
         Inicializa a simulação.
         
@@ -26,9 +26,11 @@ class Simulation:
             database: Database contendo veículos, grafo e requests
             search_algorithm: Função de algoritmo de procura a usar
             time_step: Quantos minutos avançam a cada tick (padrão: 1)
+            heuristic: Heurística a usar (para algoritmos informados)
         """
         self.db = database
-        self.search_algorithm = search_algorithm
+        self.search_algorithm_func = search_algorithm
+        self.heuristic = heuristic
         self.vehicles = database.vehicles
         self.requests = database.requests
         self.graph = database.graph
@@ -45,8 +47,29 @@ class Simulation:
             'requests_completed': 0,
             'requests_pending': len(self.requests),
             'total_distance': 0,
-            'total_time': 0
+            'total_time': 0,
+            'total_fuel_cost': 0.0,
+            'requests_not_served': 0
         }
+    
+    def search_algorithm(self, start, goal, graph):
+        """
+        Wrapper para chamar o algoritmo de busca com ou sem heurística.
+        """
+        import inspect
+        sig = inspect.signature(self.search_algorithm_func)
+        params = sig.parameters
+        
+        # Verifica se o algoritmo aceita heurística/criterion
+        if 'heuristic' in params and self.heuristic:
+            # Greedy usa 'heuristic'
+            return self.search_algorithm_func(start, goal, graph, heuristic=self.heuristic)
+        elif 'criterion' in params and self.heuristic:
+            # A* usa 'criterion'
+            return self.search_algorithm_func(start, goal, graph, criterion=self.heuristic)
+        else:
+            # Algoritmos não informados (BFS, DFS, Uniform Cost)
+            return self.search_algorithm_func(start, goal, graph)
     
     def reset(self):
         """Reset da simulação para estado inicial."""
@@ -105,8 +128,7 @@ class Simulation:
         
         if not available_vehicles:
             if request.eco_friendly:
-                print(f"⚠️  Request {request.id} (ECO-FRIENDLY) não pode ser atendido: sem veículos elétricos disponíveis")
-            return None
+                return None
         
         best_vehicle = None
         best_cost = float('inf')
@@ -119,14 +141,16 @@ class Simulation:
                 continue
 
             # Caminho: veículo → pickup
-            cost1, time1, path1 = self.search_algorithm(
+            # IMPORTANTE: Os algoritmos retornam (distância_metros, tempo_minutos, path)
+            # Usamos TEMPO como critério de escolha do melhor veículo
+            dist1, time1, path1 = self.search_algorithm(
                 vehicle.current_position, 
                 request.start_point, 
                 self.graph
             )
 
             # Caminho: pickup → destino
-            cost2, time2, path2 = self.search_algorithm(
+            dist2, time2, path2 = self.search_algorithm(
                 request.start_point, 
                 request.end_point, 
                 self.graph
@@ -153,14 +177,14 @@ class Simulation:
 
                 if refuel_station:
                     # Calcula caminho até a estação
-                    station_cost, station_time, station_path = self.search_algorithm(
+                    station_dist, station_time, station_path = self.search_algorithm(
                         vehicle.current_position,
                         refuel_station.position,
                         self.graph
                     )
 
                     # Recalcula caminho da estação até o pickup
-                    cost1_new, time1_new, path1_new = self.search_algorithm(
+                    dist1_new, time1_new, path1_new = self.search_algorithm(
                         refuel_station.position,
                         request.start_point,
                         self.graph
@@ -169,21 +193,27 @@ class Simulation:
                     # Tempo total de abastecimento (baseado no tipo de estação)
                     refuel_time = get_refuel_time(vehicle, station_type)
 
-                    # Ajusta custos
-                    cost1 = station_cost + cost1_new
+                    # Ajusta tempo total (critério de otimização é TEMPO)
                     time1 = station_time + refuel_time + time1_new
 
                     # Atualiza caminhos
                     refuel_path = station_path
                     path1 = path1_new
+                    
+                    # IMPORTANTE: Recalcula distância REAL com o novo caminho
+                    total_distance = calculate_total_distance(self.graph, station_path)
+                    total_distance += calculate_total_distance(self.graph, path1_new)
+                    total_distance += calculate_total_distance(self.graph, path2)
 
-            total_cost = cost1 + cost2
+            # MUDANÇA CRÍTICA: Usa TEMPO como critério de escolha do melhor veículo
+            total_time_cost = time1 + time2
 
-            if total_cost < best_cost:
-                best_cost = total_cost
+            if total_time_cost < best_cost:
+                best_cost = total_time_cost
                 best_vehicle = vehicle
                 best_paths = (time1, time2, path1, path2)
                 best_refuel_info = (refuel_needed, refuel_station, refuel_path, refuel_time, station_type if refuel_needed else None)
+                best_real_distance = total_distance  # Guarda a distância REAL do melhor caminho
         
         if best_vehicle and best_paths:
             time_to_pickup, trip_time, path_to_pickup, path_to_dest = best_paths
@@ -208,8 +238,8 @@ class Simulation:
                 refuel_info=refuel_info
             )
             
-            # Atualiza estatísticas
-            self.stats['total_distance'] += best_cost
+            # Atualiza estatísticas - USA DISTÂNCIA REAL, não o tempo otimizado
+            self.stats['total_distance'] += best_real_distance
             self.stats['total_time'] += time_to_pickup + trip_time
         
         return best_vehicle
@@ -248,6 +278,37 @@ class Simulation:
         self.stats['requests_in_progress'] = sum(
             1 for r in self.requests if r.status in ['assigned', 'picked_up']
         )
+        
+        # Calcula custo total de combustível
+        from refuel_config import PRECO_BATERIA, PRECO_COMBUSTIVEL
+        from vehicle.vehicle_types import Eletric, Combustion, Hybrid
+        
+        total_fuel_cost = 0.0
+        for vehicle in self.vehicles:
+            vtype = vehicle.vehicle_type
+            
+            if isinstance(vtype, Eletric):
+                # Custo = energia consumida * preço bateria
+                energia_consumida = vtype.battery_capacity - vtype.current_battery
+                total_fuel_cost += energia_consumida * PRECO_BATERIA
+            
+            elif isinstance(vtype, Combustion):
+                # Custo = combustível consumido * preço combustível
+                combustivel_consumido = vtype.fuel_capacity - vtype.current_fuel
+                total_fuel_cost += combustivel_consumido * PRECO_COMBUSTIVEL
+            
+            elif isinstance(vtype, Hybrid):
+                # Custo = energia + combustível consumidos
+                energia_consumida = vtype.battery_capacity - vtype.current_battery
+                combustivel_consumido = vtype.fuel_capacity - vtype.current_fuel
+                total_fuel_cost += (energia_consumida * PRECO_BATERIA + 
+                                   combustivel_consumido * PRECO_COMBUSTIVEL)
+        
+        self.stats['total_fuel_cost'] = total_fuel_cost
+        
+        # Requests não atendidos (finalizou simulação com status 'pending')
+        if self.is_finished():
+            self.stats['requests_not_served'] = self.stats['requests_pending']
     
     def step(self):
         """
@@ -258,6 +319,11 @@ class Simulation:
         """
         if self.is_finished():
             return {'finished': True}
+        
+        # Aplica eventos de clima/trânsito baseados no tempo atual
+        # (atualiza tempos das arestas a cada 30 minutos de simulação)
+        if self.db.event_manager and self.current_time % 30 == 0:
+            self.db.event_manager.apply_events_to_edges(self.current_time)
         
         # Processa novos requests
         new_requests = self.process_new_requests()

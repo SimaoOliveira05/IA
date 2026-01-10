@@ -71,6 +71,10 @@ class Vehicle:
         self.current_edge_to: Optional[int] = None
         self.edge_travel_time: float = 0.0
         self.time_remaining_on_edge: float = 0.0
+        
+        # ===== Impacto Ambiental =====
+        self.total_emissions: float = 0.0  # Total de CO₂ emitido em gramas
+        self.total_distance_traveled: float = 0.0  # Distância total percorrida em metros
 
     # ========================================
     # ATRIBUIÇÃO DE PEDIDOS
@@ -326,8 +330,35 @@ class Vehicle:
     def _consume_energy(self, distance: float) -> None:
         """
         Consome energia/combustível baseado na distância percorrida.
+        Calcula e rastreia emissões de CO₂.
         
         Args:
             distance: Distância percorrida em metros
         """
-        self.vehicle_type.consume(distance)
+        if distance > 0:
+            # Calcula emissões ANTES de consumir (para híbridos que podem mudar de modo)
+            emissions = self.vehicle_type.calculate_emissions(distance)
+            self.total_emissions += emissions
+            
+            # Consome energia
+            self.vehicle_type.consume(distance)
+            
+            # Rastreia distância total
+            self.total_distance_traveled += distance
+    
+    def get_environmental_impact(self) -> Dict[str, Any]:
+        """
+        Retorna informações sobre o impacto ambiental do veículo.
+        
+        Returns:
+            Dict com total_emissions (g), total_distance (km), average_emissions (g/km)
+        """
+        distance_km = self.total_distance_traveled / 1000
+        avg_emissions = self.total_emissions / distance_km if distance_km > 0 else 0
+        
+        return {
+            'total_emissions_g': self.total_emissions,
+            'total_distance_km': distance_km,
+            'average_emissions_per_km': avg_emissions,
+            'vehicle_type_emissions_rate': self.vehicle_type.get_emissions_rate()
+        }

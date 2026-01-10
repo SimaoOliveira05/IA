@@ -22,7 +22,7 @@ class Graph:
             edge = next((e for e in self.edges[node_id] if e["target"] == next_id), None)
             if edge:
                 total_distance += edge["distance"]
-                total_time += edge.get("time_minutes", 0.0)
+                total_time += edge.get("time", 0.0)
         return total_distance, total_time
     
     def find_closest_node(self, position):
@@ -46,6 +46,7 @@ class Graph:
         position = Position(x, y)
         node = Node(self.next_id, position, node_type=node_type, capacity=capacity)
         node.set_id(self.next_id)
+        print(node.id)
 
         self.nodes.append(node)
         self.edges[self.next_id] = []
@@ -59,15 +60,15 @@ class Graph:
             return self.nodes[node_id]
         return None
 
-    def add_edge(self, id1, id2, distance=None, edge_speed=50,traffic_factor=1.0, open=True):
+    def add_edge(self, id1, id2, distance=None, edge_speed=50, travel_time=None, open=True):
         """
         Adiciona uma aresta entre dois nós.
 
         Args:
             id1, id2 (int): IDs internos do primeiro nó e do segundo nó
             distance (float): Distância em metros.
-            edge_speed (float): Velocidade da estrada em km/h.
-            traffic_factor (float): Fator multiplicador do tempo devido ao trânsito.
+            edge_speed (float): Velocidade da estrada em km/h (usado se travel_time não for fornecido).
+            travel_time (float): Tempo de viagem em segundos (se fornecido, usa este em vez de calcular).
             open (bool): Se a estrada está aberta. Default=True.
         """
         n1 = self.get_node(id1)
@@ -79,17 +80,24 @@ class Graph:
         if distance is None:
             distance = n1.position.distance_to(n2.position)
 
-        # Calcula o tempo em segundos
-        time_hours = (distance * 0.001) / edge_speed
-        time_minutes = time_hours * 60
-        time = time_minutes * traffic_factor * 60  # converte para segundos
+        # Usa o travel_time fornecido (já em segundos) ou calcula
+        if travel_time is not None:
+            # Usa o tempo fornecido pelo OSMnx (em segundos)
+            time_seconds = travel_time
+        else:
+            # Calcula o tempo baseado na velocidade
+            time_hours = (distance * 0.001) / edge_speed
+            time_seconds = time_hours * 3600
+        
+        # TRANSFORMAÇÃO DE ESCALA: segundos -> "minutos" (22s -> 22min)
+        # Isto mantém os valores numéricos mas muda a semântica para a simulação
+        time_minutes = time_seconds / 2  # 22 segundos reais tornam-se 22 "minutos" de simulação
 
         # Cria a aresta direta
         edge_info = {
             "target": id2,
             "distance": distance,
-            "time": time,
-            "traffic_factor": traffic_factor,
+            "time": time_minutes,  # Tempo em "minutos" de simulação
             "open": open
         }
         self.edges[id1].append(edge_info)
@@ -99,17 +107,41 @@ class Graph:
             reverse_info = {
                 "target": id1,
                 "distance": distance,
-                "time": time,
-                "traffic_factor": traffic_factor,
+                "time": time_minutes,
                 "open": open
             }
-        self.edges[id2].append(reverse_info)
+            self.edges[id2].append(reverse_info)
+
+    def get_edge_time(self, node1_id, node2_id):
+        """
+        Obtém o tempo atual de uma aresta (já com eventos aplicados).
+        
+        Args:
+            node1_id: ID do primeiro nó
+            node2_id: ID do segundo nó
+            
+        Returns:
+            float: Tempo em minutos, ou None se aresta não existe
+        """
+        if node1_id in self.edges:
+            for edge in self.edges[node1_id]:
+                if edge["target"] == node2_id:
+                    return edge.get("time", 0)
+        return None
 
     
-    def draw(self, ax, show_labels=True, show_distances=True, show_times=True, vehicles=None, requests=None):
+    def draw(self, ax, show_labels=True, requests=None):
         """
         Desenha o grafo num eixo fornecido (ax), sem criar nova figura.
         Usado para animação/live plot.
+        
+        Args:
+            ax: Eixo matplotlib onde desenhar
+            show_labels: Mostrar IDs dos nós
+            requests: Lista de requests (opcional)
+            
+        Returns:
+            dict: Dicionário com referências às labels das arestas para atualização
         """
         node_colors = {
             "pickup": "green",
@@ -122,10 +154,10 @@ class Graph:
         edge_colors = {
             "open": "black",
             "closed": "red",
-            "traffic": "orange"
         }
 
         drawn_edges = set()
+        edge_labels = {}  # Guarda referências às labels para atualização
 
         # Desenhar arestas
         for node_id, edges in self.edges.items():
@@ -141,33 +173,33 @@ class Graph:
                 if not edge.get("open", True):
                     color = edge_colors["closed"]
                     style = "--"
-                elif edge.get("traffic_factor", 1.0) > 1.3:
-                    color = edge_colors["traffic"]
-                    style = "-"
+
                 else:
                     color = edge_colors["open"]
                     style = "-"
 
                 ax.plot([n1.position.x, n2.position.x], [n1.position.y, n2.position.y], 
-                       linestyle=style, color=color, linewidth=0.5 * edge.get("traffic_factor", 1.0), 
+                       linestyle=style, color=color, linewidth=0.5, 
                        alpha=0.7, zorder=1)
 
-                if show_distances and edge_pair not in drawn_edges:
+                # Mostrar distância e tempo na mesma label (duas linhas)
+                if edge_pair not in drawn_edges:
                     mid_x = (n1.position.x + n2.position.x) / 2
                     mid_y = (n1.position.y + n2.position.y) / 2
+                    
                     distance = edge.get("distance", 0)
-                    ax.text(mid_x, mid_y, f"{distance:.0f}m", fontsize=5, color="purple", 
-                           ha='center', va='center', 
-                           bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', boxstyle='round,pad=0.1'))
-                    drawn_edges.add(edge_pair)
-
-                if show_times and edge_pair not in drawn_edges:
-                    mid_x = (n1.position.x + n2.position.x) / 2
-                    mid_y = (n1.position.y + n2.position.y) / 2 + 2
                     time = edge.get("time", 0)
-                    ax.text(mid_x, mid_y, f"{time:.1f}seg", fontsize=5, color="blue", 
+                    label_text = f"{distance:.0f}m\n{time:.1f}min"
+                    
+                    text_obj = ax.text(mid_x, mid_y, label_text, fontsize=5, color="darkblue", 
                            ha='center', va='center', 
-                           bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', boxstyle='round,pad=0.1'))
+                           bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='round,pad=0.1'))
+                    
+                    # Guarda referência à label para atualização posterior
+                    edge_labels[edge_pair] = {
+                        'text_obj': text_obj,
+                        'distance': distance
+                    }
                     drawn_edges.add(edge_pair)
 
         # Desenhar nós
@@ -262,3 +294,5 @@ class Graph:
 
         ax.set_aspect('equal')
         ax.axis('off')
+        
+        return edge_labels

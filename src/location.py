@@ -3,7 +3,7 @@ from graph.position import Position
 import osmnx as ox
 import math
 
-def create_location_graph(place_name : str, min_distance: float = 30.0) -> Graph: 
+def create_location_graph(place_name : str, min_distance: float = 100) -> Graph: 
     """
     Cria um grafo da rede viária de uma dada localização, usando coordenadas projetadas (em metros).
     O grafo é convertido para a estrutura definida Graph() com nós e arestas.
@@ -70,7 +70,12 @@ def create_location_graph(place_name : str, min_distance: float = 30.0) -> Graph
                 continue
                 
             length = edge.get("length", None)
-            graph.add_edge(id_u, id_v, distance=length, edge_speed=edge.get("speed_kph", 50))
+            graph.add_edge(
+                id_u, id_v,
+                distance=length,
+                edge_speed=edge.get("speed_kph", 50),
+                travel_time=edge.get("travel_time")  # Passa o tempo fornecido pelo OSMnx (em segundos)
+            )
     
     print(f"Grafo criado com {len(graph.nodes)} nós e {sum(len(e) for e in graph.edges.values())} arestas.")
     print(f"Nodos fundidos (simplificados): {merged_nodes}")

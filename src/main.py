@@ -14,11 +14,11 @@ class Menu:
     
     from algorithms import ALGORITHMS as ALGO_DICT
     ALGORITHMS = {
-        '1': ('A*', ALGO_DICT['a_star'], '⭐ Menor tempo (A*)'),
-        '2': ('Greedy', ALGO_DICT['greedy'], '🟡 Heurística rápida'),
-        '3': ('BFS', ALGO_DICT['bfs'], '❌ Menor número de arestas'),
-        '4': ('DFS', ALGO_DICT['dfs'], '❌ Caminhos longos'),
-        '5': ('Uniform Cost', ALGO_DICT['uniform_cost'], '⭐ Menor custo (Uniform Cost)'),
+        '1': ('A*', ALGO_DICT['a_star'], True),
+        '2': ('Greedy', ALGO_DICT['greedy'], True),
+        '3': ('BFS', ALGO_DICT['bfs'], False),
+        '4': ('DFS', ALGO_DICT['dfs'], False),
+        '5': ('Uniform Cost', ALGO_DICT['uniform_cost'], False),
     }
     
     @staticmethod
@@ -29,27 +29,64 @@ class Menu:
         print("="*60)
     
     @staticmethod
+    def choose_heuristic():
+        """
+        Menu para escolha da heurística (apenas para algoritmos informados).
+        
+        Returns:
+            str: Nome da heurística escolhida
+        """
+        from algorithms.informed.heuristics import HEURISTICS
+        
+        print("\n--- Escolha a Heurística ---")
+        heuristic_keys = list(HEURISTICS.keys())
+        for i, (key, description) in enumerate(HEURISTICS.items(), 1):
+            print(f"{i} - {description}")
+        
+        choice = input(f"\nEscolha (1-{len(HEURISTICS)}) [padrão: 1]: ").strip() or '1'
+        
+        try:
+            idx = int(choice) - 1
+            if 0 <= idx < len(heuristic_keys):
+                heuristic = heuristic_keys[idx]
+                print(f"\n✓ Heurística selecionada: {HEURISTICS[heuristic]}")
+                return heuristic
+        except ValueError:
+            pass
+        
+        print(f"\n⚠ Opção inválida, usando Distância Euclidiana")
+        return 'distance'
+    
+    @staticmethod
     def choose_algorithm():
         """
         Menu para escolha do algoritmo de procura.
         
         Returns:
-            tuple: (nome, função) do algoritmo escolhido
+            tuple: (nome, função, heurística ou None) do algoritmo escolhido
         """
         print("\n--- Escolha o Algoritmo de Procura ---")
         
-        for key, (name, _, description) in Menu.ALGORITHMS.items():
-            print(f"{key} - {name:10} {description}")
+        for key, (name, _, is_informed) in Menu.ALGORITHMS.items():
+            marker = "🎯" if is_informed else "🔍"
+            print(f"{key} - {marker} {name}")
         
-        choice = input("\nEscolha (1/2/3) [padrão: 3]: ").strip() or '3'
+        choice = input("\nEscolha (1-5) [padrão: 1]: ").strip() or '1'
         
         if choice in Menu.ALGORITHMS:
-            name, func, _ = Menu.ALGORITHMS[choice]
+            name, func, is_informed = Menu.ALGORITHMS[choice]
             print(f"\n✓ Algoritmo selecionado: {name}")
-            return name, func
+            
+            # Se é algoritmo informado, pede heurística
+            heuristic = None
+            if is_informed:
+                heuristic = Menu.choose_heuristic()
+            
+            return name, func, heuristic
         else:
             print(f"\n⚠ Opção inválida, usando A*")
-            return 'A*', ALGORITHMS['a_star']
+            heuristic = Menu.choose_heuristic()
+            return 'A*', ALGORITHMS['a_star'], heuristic
     
     @staticmethod
     def choose_visualization():
@@ -65,26 +102,7 @@ class Menu:
         
         mode_choice = input("\nEscolha [1/2] (padrão: 1): ").strip() or '1'
         
-        if mode_choice == '2':
-            return {
-                'headless': True,
-                'show_times': False,
-                'show_distances': False
-            }
-        
-        # Modo com visualização
-        print("\n--- Opções de Visualização ---")
-        print("[S]im - Mostrar tempo de viagem nas arestas")
-        print("[N]ão - Mostrar apenas distâncias")
-        
-        choice = input("\nMostrar tempos? [S/N]: ").strip().lower()
-        show_times = choice in ['s', 'sim', 'y', 'yes']
-        
-        return {
-            'headless': False,
-            'show_times': show_times,
-            'show_distances': not show_times
-        }
+        return {'headless': mode_choice == '2'}
     
 def run_simulation(database):
     """
@@ -93,8 +111,8 @@ def run_simulation(database):
     Args:
         database: Database carregada
     """
-    # Escolha do algoritmo
-    algo_name, algo_func = Menu.choose_algorithm()
+    # Escolha do algoritmo e heurística
+    algo_name, algo_func, heuristic = Menu.choose_algorithm()
     
     # Opções de visualização
     viz_options = Menu.choose_visualization()
@@ -109,8 +127,8 @@ def run_simulation(database):
     time_step_input = input("\nEscolha [1/2/5]: ").strip()
     time_step = int(time_step_input) if time_step_input in ['1', '2', '5'] else 1
     
-    # Cria simulação com time_step configurado
-    simulation = Simulation(database, algo_func, time_step=time_step)
+    # Cria simulação com time_step e heurística configurados
+    simulation = Simulation(database, algo_func, time_step=time_step, heuristic=heuristic)
     
     # Informação da simulação
     print(f"\n📊 Informação da Simulação:")
@@ -119,6 +137,9 @@ def run_simulation(database):
     print(f"   Veículos: {len(database.vehicles)}")
     print(f"   Requests: {len(database.requests)}")
     print(f"   Algoritmo: {algo_name}")
+    if heuristic:
+        from algorithms.informed.heuristics import HEURISTICS
+        print(f"   Heurística: {HEURISTICS.get(heuristic, heuristic)}")
     print(f"   Time Step: {time_step} minuto(s) por tick")
     print(f"   Período: 08:00 - 20:00\n")
     
@@ -140,9 +161,7 @@ def run_simulation(database):
         
         visualizer = Visualizer(
             simulation,
-            interval=100,  # 100ms = 10 FPS
-            show_times=viz_options.get('show_times', True),
-            show_distances=viz_options.get('show_distances', False)
+            interval=100  # 100ms = 10 FPS
         )
         
         visualizer.run()
@@ -156,6 +175,64 @@ def run_simulation(database):
     print(f"Requests pendentes:   {stats['requests_pending']}")
     print(f"Distância total:      {stats['total_distance']:.2f} metros")
     print(f"Tempo total:          {stats['total_time']:.2f} minutos")
+    print(f"Custo combustível:    {stats['total_fuel_cost']:.2f} €")
+    
+    # Estatísticas ambientais
+    print("\n" + "-"*60)
+    print("           🌱 IMPACTO AMBIENTAL")
+    print("-"*60)
+    
+    total_emissions = 0.0
+    total_distance = 0.0
+    
+    for vehicle in simulation.vehicles:
+        impact = vehicle.get_environmental_impact()
+        total_emissions += impact['total_emissions_g']
+        total_distance += impact['total_distance_km']
+        
+        vehicle_type_name = type(vehicle.vehicle_type).__name__
+        emoji = "⚡" if vehicle_type_name == "Eletric" else "🔥" if vehicle_type_name == "Combustion" else "🔋"
+        
+        print(f"{emoji} {vehicle.name} ({vehicle_type_name}):")
+        print(f"   Distância: {impact['total_distance_km']:.2f} km")
+        print(f"   Emissões: {impact['total_emissions_g']:.1f}g CO₂")
+        if impact['total_distance_km'] > 0:
+            print(f"   Média: {impact['average_emissions_per_km']:.1f}g CO₂/km")
+    
+    print(f"\n🌍 TOTAL DA FROTA:")
+    print(f"   Distância: {total_distance:.2f} km")
+    print(f"   Emissões: {total_emissions:.1f}g CO₂ ({total_emissions/1000:.3f} kg)")
+    if total_distance > 0:
+        print(f"   Média: {total_emissions/total_distance:.1f}g CO₂/km")
+    
+    # Função de Custo Total com pesos iguais
+    print("\n" + "-"*60)
+    print("           💰 FUNÇÃO DE CUSTO TOTAL")
+    print("-"*60)
+    print("C = α·F + β·T + ε·R + θ·D + δ·A")
+    print("(Pesos iguais: α = β = ε = θ = δ = 1.0)")
+    
+    # Componentes do custo (normalizados)
+    F_norm = stats.get('total_fuel_cost', 0.0)  # Já em euros
+    T_norm = stats['total_time'] / 60.0  # Converte minutos para horas
+    R_norm = stats['requests_pending']  # Número de requests
+    D_norm = stats['total_distance'] / 1000.0  # Converte metros para km
+    A_norm = total_emissions / 1000.0  # Converte gramas para kg
+    
+    # Pesos iguais
+    alpha = beta = epsilon = theta = delta = 1.0
+    
+    # Calcula custo total
+    C = alpha * F_norm + beta * T_norm + epsilon * R_norm + theta * D_norm + delta * A_norm
+    
+    print(f"\nComponentes (normalizados):")
+    print(f"  F (combustível)     = {F_norm:.2f} €")
+    print(f"  T (tempo)           = {T_norm:.2f} horas")
+    print(f"  R (não atendidos)   = {R_norm}")
+    print(f"  D (distância)       = {D_norm:.2f} km")
+    print(f"  A (emissões)        = {A_norm:.3f} kg CO₂")
+    print(f"\n💰 CUSTO TOTAL: C = {C:.2f}")
+    
     print("="*60 + "\n")
 
 

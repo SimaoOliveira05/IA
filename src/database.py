@@ -16,15 +16,6 @@ class Database:
         self.fuel_stations = fuel_stations if fuel_stations is not None else []
         self.charging_stations = charging_stations if charging_stations is not None else []
         self.event_manager = event_manager
-    
-    '''
-    Lists all vehicles in the database 
-    '''
-    def list_vehicles(self):
-        print("\n--- Lista de Veículos ---\n")
-        for v in self.vehicles:
-            print(f"[{v.id}] {v.name} ({v.vehicle_type.__class__.__name__}) - Condutor: {v.driver} - Posição atual: {v.start_point}")
-        print(f"\nTotal: {len(self.vehicles)} veículos\n")
 
 def get_position_from_node_id(graph, node_id: int) -> Position:
     node = graph.get_node(node_id)
@@ -98,7 +89,7 @@ def load_dataset(dataset_path) -> Database:
             start_point=start_pos,
             end_point=end_pos,
             requested_time=req["requested_time"],
-            multiple_people=req["multiple_people"],
+            multiple_people="false",
             passengers=req["passengers"],
             eco_friendly=req.get("eco_friendly", False),  # Preferência ambiental (padrão: False)
             id=req.get("id", None)

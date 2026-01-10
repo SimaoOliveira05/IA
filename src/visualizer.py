@@ -13,20 +13,16 @@ class Visualizer:
     Completamente separado da lógica de negócio.
     """
     
-    def __init__(self, simulation, interval=100, show_times=True, show_distances=False):
+    def __init__(self, simulation, interval=100):
         """
         Inicializa o visualizador.
         
         Args:
             simulation: Instância de Simulation
             interval: Intervalo entre frames em ms (100ms = 10 FPS)
-            show_times: Mostrar tempos nas arestas
-            show_distances: Mostrar distâncias nas arestas
         """
         self.simulation = simulation
         self.interval = interval
-        self.show_times = show_times
-        self.show_distances = show_distances
         
         # Referências aos elementos visuais
         self.fig = None
@@ -40,6 +36,8 @@ class Visualizer:
         self.dropoff_labels = []
         self.title_text = None
         self.stats_text = None
+        self.edge_labels = {}  # Referências às labels das arestas para atualização dinâmica
+        self.last_time_update = -1  # Último minuto em que atualizámos as labels
     
     def setup_figure(self):
         """Cria e configura a figura com dois painéis."""
@@ -56,11 +54,9 @@ class Visualizer:
         # Ajusta o espaçamento entre os painéis
         plt.subplots_adjust(left=0.05, right=0.98, top=0.95, bottom=0.05, wspace=0.3)
         
-        # Desenha o grafo estático (apenas uma vez)
-        self.simulation.graph.draw(
+        # Desenha o grafo estático e guarda referências às labels das arestas
+        self.edge_labels = self.simulation.graph.draw(
             self.ax_graph, 
-            show_times=self.show_times, 
-            show_distances=self.show_distances, 
             requests=None
         )
     
@@ -121,7 +117,7 @@ class Visualizer:
         # Estatísticas no painel direito
         self.stats_text = self.ax_stats.text(
             0.05, 0.95, '', transform=self.ax_stats.transAxes,
-            ha='left', va='top', fontsize=11, family='monospace',
+            ha='left', va='top', fontsize=9, family='monospace',
             bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.9, pad=1)
         )
     
@@ -148,6 +144,28 @@ class Visualizer:
             # Atualiza label
             label.set_position((x, y + 2))
             label.set_text(f"{taxi.id}")
+    
+    def update_edge_labels(self):
+        """
+        Atualiza as labels das arestas com os tempos atuais.
+        Os tempos podem mudar devido a eventos de trânsito/clima.
+        """
+        graph = self.simulation.graph
+        
+        for edge_pair, label_info in self.edge_labels.items():
+            node1_id, node2_id = edge_pair
+            
+            # Obtém o tempo atual da aresta (já com eventos aplicados)
+            current_time = graph.get_edge_time(node1_id, node2_id)
+            if current_time is None:
+                continue
+            
+            distance = label_info['distance']
+            text_obj = label_info['text_obj']
+            
+            # Atualiza o texto da label
+            new_text = f"{distance:.0f}m\n{current_time:.1f}min"
+            text_obj.set_text(new_text)
     
     def update_request_markers(self):
         """Atualiza marcadores de requests (pickup/dropoff)."""
@@ -230,39 +248,41 @@ class Visualizer:
         # Táxis
         stats_str += "TAXIS\n"
         stats_str += f"  [ ] IDLE: {len(idle_vehicles)}\n"
-        stats_str += f"  [*] Viajando: {len(traveling_vehicles)}\n"
+        stats_str += f"  [*] A viajar: {len(traveling_vehicles)}\n"
         stats_str += f"  Total: {len(self.simulation.vehicles)}\n"
         stats_str += "\n"
         
-        # Detalhes dos táxis
+        # Detalhes dos táxis (formato compacto)
         stats_str += "=== VEICULOS ===\n\n"
         for v in self.simulation.vehicles:
             status_icon = "[ ]" if v.status.name == "IDLE" else "[*]"
-            stats_str += f"{status_icon} Taxi {v.id} - {v.name}\n"
-            stats_str += f"     Motorista: {v.driver}\n"
-            stats_str += f"     Status: {v.status.name}\n"
             
-            # Energia/Combustível
+            # Linha 1: ID, nome e status
+            stats_str += f"{status_icon} T{v.id}: {v.name[:15]}\n"
+            
+            # Linha 2: Energia/Combustível (compacto)
             from vehicle.vehicle import Eletric, Combustion, Hybrid
             if isinstance(v.vehicle_type, Eletric):
                 battery_pct = v.vehicle_type.battery_percentage()
-                battery_bar = self._get_progress_bar(battery_pct)
-                stats_str += f"     Bateria: {battery_bar} {battery_pct:.1f}%\n"
+                battery_bar = self._get_progress_bar(battery_pct, width=8)
+                stats_str += f"    Bat {battery_bar} {battery_pct:.0f}%"
             elif isinstance(v.vehicle_type, Combustion):
                 fuel_pct = v.vehicle_type.fuel_percentage()
-                fuel_bar = self._get_progress_bar(fuel_pct)
-                stats_str += f"     Combustivel: {fuel_bar} {fuel_pct:.1f}%\n"
+                fuel_bar = self._get_progress_bar(fuel_pct, width=8)
+                stats_str += f"    Gas {fuel_bar} {fuel_pct:.0f}%"
             elif isinstance(v.vehicle_type, Hybrid):
                 battery_pct = v.vehicle_type.battery_percentage()
                 fuel_pct = v.vehicle_type.fuel_percentage()
-                battery_bar = self._get_progress_bar(battery_pct)
-                fuel_bar = self._get_progress_bar(fuel_pct)
-                stats_str += f"     Bateria: {battery_bar} {battery_pct:.1f}%\n"
-                stats_str += f"     Combustivel: {fuel_bar} {fuel_pct:.1f}%\n"
+                battery_bar = self._get_progress_bar(battery_pct, width=6)
+                fuel_bar = self._get_progress_bar(fuel_pct, width=6)
+                stats_str += f"    Bat {battery_bar}{battery_pct:.0f}% Gas{fuel_bar}{fuel_pct:.0f}%"
             
+            # Request e CO2 na mesma linha
             if v.current_request:
-                stats_str += f"     Request: #{v.current_request.id}\n"
-                stats_str += f"     Fase: {v.phase}\n"
+                stats_str += f" | Req#{v.current_request.id}"
+            
+            impact = v.get_environmental_impact()
+            stats_str += f" | {impact['total_emissions_g']:.0f}g CO2"
             stats_str += "\n"
         
         self.stats_text.set_text(stats_str)
@@ -292,6 +312,9 @@ class Visualizer:
     
     def get_all_artists(self):
         """Retorna lista de todos os artistas para blit."""
+        # Inclui as labels das arestas para que sejam atualizadas
+        edge_label_artists = [info['text_obj'] for info in self.edge_labels.values()]
+        
         return (
             self.taxi_markers + 
             self.taxi_labels + 
@@ -299,7 +322,8 @@ class Visualizer:
             self.pickup_labels + 
             self.dropoff_markers + 
             self.dropoff_labels + 
-            [self.title_text, self.stats_text]
+            [self.title_text, self.stats_text] +
+            edge_label_artists
         )
     
     def init_animation(self):
@@ -321,6 +345,14 @@ class Visualizer:
         
         if step_info['finished']:
             return self.get_all_artists()
+        
+        # Atualiza labels das arestas a cada 30 minutos de simulação
+        # (para refletir mudanças de trânsito/clima)
+        current_time = self.simulation.current_time
+        time_block = current_time // 30  # Bloco de 30 minutos
+        if time_block != self.last_time_update:
+            self.update_edge_labels()
+            self.last_time_update = time_block
         
         # Atualiza todos os elementos visuais
         self.update_taxi_markers()
