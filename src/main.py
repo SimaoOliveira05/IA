@@ -313,6 +313,179 @@ def list_vehicles(database):
     database.list_vehicles()
 
 
+def run_all_simulations(database, time_step=5, results_file="../data/resultados_todos_algoritmos.txt"):
+    """
+    Executa TODOS os algoritmos automaticamente.
+    Para algoritmos informados (A*, Greedy), corre com CADA heurística.
+    Para algoritmos não-informados (BFS, DFS, Uniform Cost), corre uma vez.
+    
+    Args:
+        database: Base de dados carregada
+        time_step: Minutos por tick (default 5 para ser mais rápido)
+        results_file: Ficheiro onde guardar os resultados
+    """
+    from algorithms.informed.heuristics import HEURISTICS
+    from datetime import datetime
+    
+    # Lista de todas as combinações a correr
+    combinations = []
+    
+    for key, (name, func, is_informed) in Menu.ALGORITHMS.items():
+        if is_informed:
+            # Algoritmo informado: corre com cada heurística
+            for h_key in HEURISTICS.keys():
+                combinations.append((name, func, h_key))
+        else:
+            # Algoritmo não-informado: corre uma vez sem heurística
+            combinations.append((name, func, None))
+    
+    total = len(combinations)
+    print(f"\n{'='*70}")
+    print(f"           🚀 EXECUÇÃO DE TODOS OS ALGORITMOS")
+    print(f"{'='*70}")
+    print(f"\nTotal de combinações a executar: {total}")
+    print(f"Time step: {time_step} minuto(s) por tick")
+    print(f"Resultados serão guardados em: {results_file}")
+    print()
+    
+    # Limpa ficheiro de resultados anterior
+    with open(results_file, "w", encoding="utf-8") as f:
+        f.write("="*70 + "\n")
+        f.write("         RESULTADOS DE TODOS OS ALGORITMOS\n")
+        f.write(f"         Executado em: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write("="*70 + "\n\n")
+    
+    results_summary = []
+    
+    for i, (algo_name, algo_func, heuristic) in enumerate(combinations, 1):
+        heuristic_name = HEURISTICS.get(heuristic, "N/A") if heuristic else "N/A"
+        
+        print(f"[{i}/{total}] Executando: {algo_name}", end="")
+        if heuristic:
+            print(f" com heurística '{heuristic_name}'", end="")
+        print(" ... ", end="", flush=True)
+        
+        try:
+            # Recarrega a base de dados para cada simulação (estado limpo)
+            from database import load_dataset
+            fresh_database = load_dataset("../data/dataset.json")
+            
+            # Cria simulação
+            simulation = Simulation(fresh_database, algo_func, time_step=time_step, heuristic=heuristic)
+            
+            # Executa simulação completa (modo headless)
+            while not simulation.is_finished():
+                simulation.step()
+            
+            # Calcula estatísticas
+            stats = simulation.stats
+            
+            # Calcula emissões totais
+            total_emissions = 0.0
+            total_distance = 0.0
+            for vehicle in simulation.vehicles:
+                impact = vehicle.get_environmental_impact()
+                total_emissions += impact['total_emissions_g']
+                total_distance += impact['total_distance_km']
+            
+            # Componentes do custo normalizados
+            F_norm = stats.get('total_fuel_cost', 0.0)
+            T_norm = stats['total_time'] / 60.0
+            R_norm = stats['requests_pending']
+            D_norm = stats['total_distance'] / 1000.0
+            A_norm = total_emissions / 1000.0
+            
+            # Custo total
+            alpha = beta = epsilon = theta = delta = 1.0
+            C = alpha * F_norm + beta * T_norm + epsilon * R_norm + theta * D_norm + delta * A_norm
+            
+            # Guarda resultados para sumário
+            results_summary.append({
+                'algorithm': algo_name,
+                'heuristic': heuristic_name,
+                'completed': stats['requests_completed'],
+                'cost': C,
+                'time_ms': stats.get('search_time_avg_ms', 0),
+                'emissions': total_emissions
+            })
+            
+            # Exporta para ficheiro
+            export_results_to_file(
+                algo_name=algo_name,
+                heuristic=heuristic,
+                stats=stats,
+                total_emissions=total_emissions,
+                total_distance=total_distance,
+                C=C,
+                F_norm=F_norm,
+                T_norm=T_norm,
+                R_norm=R_norm,
+                D_norm=D_norm,
+                A_norm=A_norm,
+                filename=results_file
+            )
+            
+            print(f"✓ (Custo: {C:.2f}, Tempo médio: {stats.get('search_time_avg_ms', 0):.4f}ms)")
+            
+        except Exception as e:
+            print(f"❌ Erro: {e}")
+            results_summary.append({
+                'algorithm': algo_name,
+                'heuristic': heuristic_name,
+                'completed': 0,
+                'cost': float('inf'),
+                'time_ms': 0,
+                'emissions': 0,
+                'error': str(e)
+            })
+    
+    # Mostra sumário final
+    print(f"\n{'='*70}")
+    print(f"           📊 SUMÁRIO COMPARATIVO")
+    print(f"{'='*70}\n")
+    
+    # Ordena por custo total
+    results_summary.sort(key=lambda x: x['cost'])
+    
+    print(f"{'Algoritmo':<15} {'Heurística':<35} {'Custo':>10} {'Tempo(ms)':>12}")
+    print("-"*70)
+    
+    for r in results_summary:
+        algo = r['algorithm'][:14]
+        heur = r['heuristic'][:34]
+        cost = f"{r['cost']:.2f}" if r['cost'] != float('inf') else "ERRO"
+        time = f"{r['time_ms']:.4f}"
+        print(f"{algo:<15} {heur:<35} {cost:>10} {time:>12}")
+    
+    # Identifica o melhor
+    best = results_summary[0]
+    print(f"\n🏆 MELHOR COMBINAÇÃO: {best['algorithm']}", end="")
+    if best['heuristic'] != "N/A":
+        print(f" + {best['heuristic']}", end="")
+    print(f" (Custo: {best['cost']:.2f})")
+    
+    # Adiciona sumário ao ficheiro
+    with open(results_file, "a", encoding="utf-8") as f:
+        f.write("\n" + "="*70 + "\n")
+        f.write("           SUMÁRIO COMPARATIVO (ordenado por custo)\n")
+        f.write("="*70 + "\n\n")
+        f.write(f"{'Algoritmo':<15} {'Heurística':<35} {'Custo':>10} {'Tempo(ms)':>12}\n")
+        f.write("-"*70 + "\n")
+        for r in results_summary:
+            algo = r['algorithm'][:14]
+            heur = r['heuristic'][:34]
+            cost = f"{r['cost']:.2f}" if r['cost'] != float('inf') else "ERRO"
+            time = f"{r['time_ms']:.4f}"
+            f.write(f"{algo:<15} {heur:<35} {cost:>10} {time:>12}\n")
+        f.write(f"\n🏆 MELHOR: {best['algorithm']}")
+        if best['heuristic'] != "N/A":
+            f.write(f" + {best['heuristic']}")
+        f.write(f" (Custo: {best['cost']:.2f})\n")
+    
+    print(f"\n📁 Resultados completos guardados em: {results_file}")
+    print("="*70 + "\n")
+
+
 def main():
     """Função principal da aplicação."""
     try:
@@ -322,8 +495,21 @@ def main():
         print("\n📂 Carregando dados...")
         database = load_dataset("../data/dataset.json")
         print("✓ Dados carregados com sucesso!")
-
-        run_simulation(database)
+        
+        # Menu de escolha
+        print("\n--- Modo de Execução ---")
+        print("[1] Simulação individual (escolher algoritmo)")
+        print("[2] Executar TODOS os algoritmos (batch mode)")
+        
+        choice = input("\nEscolha [1/2]: ").strip()
+        
+        if choice == '2':
+            print("\nQuantos minutos por tick? (recomendado: 5 para execução rápida)")
+            time_step_input = input("Time step [1/2/5] (default 5): ").strip()
+            time_step = int(time_step_input) if time_step_input in ['1', '2', '5'] else 5
+            run_all_simulations(database, time_step=time_step)
+        else:
+            run_simulation(database)
 
     except KeyboardInterrupt:
         print("\n\n⚠ Simulação interrompida pelo utilizador\n")
