@@ -1,0 +1,834 @@
+{
+    "location": "Gualtar, Braga, Portugal",
+    "vehicles": [
+        {
+            "id": 1,
+            "name": "Peugeot e-208",
+            "driver": "João",
+            "capacity": 5,
+            "status": "IDLE",
+            "type": "eletric",
+            "start_point": 0,
+            "battery_capacity": 100,
+            "current_battery": 100,
+            "battery_consumption": 6
+        },
+        {
+            "id": 2,
+            "name": "Renault Zoe",
+            "driver": "Ana",
+            "capacity": 5,
+            "status": "IDLE",
+            "type": "eletric",
+            "start_point": 0,
+            "battery_capacity": 100,
+            "current_battery": 85,
+            "battery_consumption": 7
+        },
+        {
+            "id": 3,
+            "name": "Audi A3",
+            "driver": "Maria",
+            "capacity": 5,
+            "status": "IDLE",
+            "start_point": 0,
+            "type": "combustion",
+            "fuel_capacity": 50,
+            "current_fuel": 38,
+            "fuel_consumption": 6
+        },
+        {
+            "id": 4,
+            "name": "BMW 320d",
+            "driver": "Pedro",
+            "capacity": 5,
+            "status": "IDLE",
+            "start_point": 0,
+            "type": "combustion",
+            "fuel_capacity": 55,
+            "current_fuel": 42,
+            "fuel_consumption": 5.5
+        },
+        {
+            "id": 5,
+            "name": "Toyota Prius",
+            "driver": "Carlos",
+            "capacity": 5,
+            "status": "IDLE",
+            "type": "hybrid",
+            "start_point": 0,
+            "battery_capacity": 8.8,
+            "current_battery": 7,
+            "battery_consumption": 18,
+            "fuel_capacity": 43,
+            "current_fuel": 38,
+            "fuel_consumption": 4
+        },
+        {
+            "id": 6,
+            "name": "Honda Civic Hybrid",
+            "driver": "Rita",
+            "capacity": 5,
+            "status": "IDLE",
+            "type": "hybrid",
+            "start_point": 0,
+            "battery_capacity": 1.3,
+            "current_battery": 1,
+            "battery_consumption": 25,
+            "fuel_capacity": 50,
+            "current_fuel": 45,
+            "fuel_consumption": 4.5
+        }
+    ],
+    "requests": [
+        {
+            "id": 1,
+            "start_point": 15,
+            "end_point": 87,
+            "requested_time": 480,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "08:00 - Casa → Escritório centro (início rush)"
+        },
+        {
+            "id": 2,
+            "start_point": 23,
+            "end_point": 142,
+            "requested_time": 483,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "08:03 - Residencial → Trabalho norte"
+        },
+        {
+            "id": 3,
+            "start_point": 8,
+            "end_point": 98,
+            "requested_time": 487,
+            "passengers": 2,
+            "eco_friendly": false,
+            "_comment": "08:07 - Casal → Centro comercial"
+        },
+        {
+            "id": 4,
+            "start_point": 134,
+            "end_point": 81,
+            "requested_time": 490,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "08:10 - Casa → Escritório"
+        },
+        {
+            "id": 5,
+            "start_point": 72,
+            "end_point": 115,
+            "requested_time": 493,
+            "passengers": 3,
+            "eco_friendly": false,
+            "_comment": "08:13 - Família → Escola norte"
+        },
+        {
+            "id": 6,
+            "start_point": 45,
+            "end_point": 156,
+            "requested_time": 497,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "08:17 - Casa → Universidade"
+        },
+        {
+            "id": 7,
+            "start_point": 167,
+            "end_point": 89,
+            "requested_time": 500,
+            "passengers": 2,
+            "eco_friendly": true,
+            "_comment": "08:20 - Apartamento → Trabalho centro"
+        },
+        {
+            "id": 8,
+            "start_point": 19,
+            "end_point": 103,
+            "requested_time": 505,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "08:25 - Casa → Empresa"
+        },
+        {
+            "id": 9,
+            "start_point": 51,
+            "end_point": 127,
+            "requested_time": 510,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "08:30 - Residência → Hospital"
+        },
+        {
+            "id": 10,
+            "start_point": 178,
+            "end_point": 84,
+            "requested_time": 513,
+            "passengers": 4,
+            "eco_friendly": false,
+            "_comment": "08:33 - Família → Escola centro"
+        },
+        {
+            "id": 11,
+            "start_point": 105,
+            "end_point": 147,
+            "requested_time": 517,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "08:37 - Casa → Fábrica"
+        },
+        {
+            "id": 12,
+            "start_point": 29,
+            "end_point": 91,
+            "requested_time": 520,
+            "passengers": 2,
+            "eco_friendly": false,
+            "_comment": "08:40 - Apartamento → Centro"
+        },
+        {
+            "id": 13,
+            "start_point": 159,
+            "end_point": 78,
+            "requested_time": 525,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "08:45 - Casa → Clínica"
+        },
+        {
+            "id": 14,
+            "start_point": 67,
+            "end_point": 135,
+            "requested_time": 530,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "08:50 - Residencial → Trabalho norte"
+        },
+        {
+            "id": 15,
+            "start_point": 38,
+            "end_point": 119,
+            "requested_time": 535,
+            "passengers": 2,
+            "eco_friendly": false,
+            "_comment": "08:55 - Casa → Escritório (pico manhã)"
+        },
+        {
+            "id": 16,
+            "start_point": 112,
+            "end_point": 56,
+            "requested_time": 540,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "09:00 - Norte → Universidade"
+        },
+        {
+            "id": 17,
+            "start_point": 173,
+            "end_point": 93,
+            "requested_time": 548,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "09:08 - Casa → Centro"
+        },
+        {
+            "id": 18,
+            "start_point": 42,
+            "end_point": 165,
+            "requested_time": 555,
+            "passengers": 3,
+            "eco_friendly": false,
+            "_comment": "09:15 - Família → Estação comboios"
+        },
+        {
+            "id": 19,
+            "start_point": 124,
+            "end_point": 76,
+            "requested_time": 563,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "09:23 - Casa → Trabalho (fim rush)"
+        },
+        {
+            "id": 20,
+            "start_point": 61,
+            "end_point": 139,
+            "requested_time": 570,
+            "passengers": 2,
+            "eco_friendly": true,
+            "_comment": "09:30 - Apartamento → Escritório"
+        },
+        {
+            "id": 21,
+            "start_point": 156,
+            "end_point": 34,
+            "requested_time": 600,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "10:00 - Universidade → Biblioteca (período calmo)"
+        },
+        {
+            "id": 22,
+            "start_point": 91,
+            "end_point": 169,
+            "requested_time": 630,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "10:30 - Centro → Casa (consulta médica)"
+        },
+        {
+            "id": 23,
+            "start_point": 127,
+            "end_point": 42,
+            "requested_time": 660,
+            "passengers": 2,
+            "eco_friendly": false,
+            "_comment": "11:00 - Hospital → Farmácia"
+        },
+        {
+            "id": 24,
+            "start_point": 78,
+            "end_point": 151,
+            "requested_time": 690,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "11:30 - Clínica → Casa"
+        },
+        {
+            "id": 25,
+            "start_point": 142,
+            "end_point": 15,
+            "requested_time": 720,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "12:00 - Trabalho → Casa (almoço)"
+        },
+        {
+            "id": 26,
+            "start_point": 87,
+            "end_point": 103,
+            "requested_time": 725,
+            "passengers": 2,
+            "eco_friendly": false,
+            "_comment": "12:05 - Escritório → Restaurante"
+        },
+        {
+            "id": 27,
+            "start_point": 98,
+            "end_point": 159,
+            "requested_time": 735,
+            "passengers": 3,
+            "eco_friendly": false,
+            "_comment": "12:15 - Centro → Restaurante"
+        },
+        {
+            "id": 28,
+            "start_point": 81,
+            "end_point": 124,
+            "requested_time": 745,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "12:25 - Escritório → Café"
+        },
+        {
+            "id": 29,
+            "start_point": 119,
+            "end_point": 67,
+            "requested_time": 755,
+            "passengers": 2,
+            "eco_friendly": false,
+            "_comment": "12:35 - Trabalho → Casa (almoço)"
+        },
+        {
+            "id": 30,
+            "start_point": 135,
+            "end_point": 51,
+            "requested_time": 765,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "12:45 - Norte → Restaurante sul"
+        },
+        {
+            "id": 31,
+            "start_point": 159,
+            "end_point": 98,
+            "requested_time": 795,
+            "passengers": 2,
+            "eco_friendly": true,
+            "_comment": "13:15 - Restaurante → Centro"
+        },
+        {
+            "id": 32,
+            "start_point": 103,
+            "end_point": 87,
+            "requested_time": 810,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "13:30 - Restaurante → Escritório"
+        },
+        {
+            "id": 33,
+            "start_point": 15,
+            "end_point": 142,
+            "requested_time": 825,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "13:45 - Casa → Trabalho (volta almoço)"
+        },
+        {
+            "id": 34,
+            "start_point": 67,
+            "end_point": 119,
+            "requested_time": 840,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "14:00 - Casa → Escritório (período calmo tarde)"
+        },
+        {
+            "id": 35,
+            "start_point": 34,
+            "end_point": 156,
+            "requested_time": 870,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "14:30 - Biblioteca → Universidade"
+        },
+        {
+            "id": 36,
+            "start_point": 169,
+            "end_point": 105,
+            "requested_time": 900,
+            "passengers": 2,
+            "eco_friendly": true,
+            "_comment": "15:00 - Casa → Ginásio"
+        },
+        {
+            "id": 37,
+            "start_point": 42,
+            "end_point": 147,
+            "requested_time": 930,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "15:30 - Farmácia → Shopping"
+        },
+        {
+            "id": 38,
+            "start_point": 151,
+            "end_point": 78,
+            "requested_time": 960,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "16:00 - Casa → Fisioterapia"
+        },
+        {
+            "id": 39,
+            "start_point": 115,
+            "end_point": 72,
+            "requested_time": 980,
+            "passengers": 3,
+            "eco_friendly": true,
+            "_comment": "16:20 - Escola → Casa (fim aulas)"
+        },
+        {
+            "id": 40,
+            "start_point": 84,
+            "end_point": 178,
+            "requested_time": 990,
+            "passengers": 2,
+            "eco_friendly": false,
+            "_comment": "16:30 - Escola → Casa"
+        },
+        {
+            "id": 41,
+            "start_point": 142,
+            "end_point": 23,
+            "requested_time": 1020,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "17:00 - Trabalho → Casa (início rush tarde)"
+        },
+        {
+            "id": 42,
+            "start_point": 87,
+            "end_point": 15,
+            "requested_time": 1025,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "17:05 - Escritório → Casa"
+        },
+        {
+            "id": 43,
+            "start_point": 91,
+            "end_point": 167,
+            "requested_time": 1030,
+            "passengers": 2,
+            "eco_friendly": false,
+            "_comment": "17:10 - Centro → Casa"
+        },
+        {
+            "id": 44,
+            "start_point": 81,
+            "end_point": 134,
+            "requested_time": 1035,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "17:15 - Escritório → Casa"
+        },
+        {
+            "id": 45,
+            "start_point": 119,
+            "end_point": 38,
+            "requested_time": 1040,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "17:20 - Escritório → Casa"
+        },
+        {
+            "id": 46,
+            "start_point": 147,
+            "end_point": 61,
+            "requested_time": 1045,
+            "passengers": 2,
+            "eco_friendly": false,
+            "_comment": "17:25 - Fábrica → Casa"
+        },
+        {
+            "id": 47,
+            "start_point": 98,
+            "end_point": 45,
+            "requested_time": 1050,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "17:30 - Centro → Casa (pico rush)"
+        },
+        {
+            "id": 48,
+            "start_point": 135,
+            "end_point": 67,
+            "requested_time": 1055,
+            "passengers": 1,
+            "eco_friendly": true,
+            "_comment": "17:35 - Trabalho → Casa"
+        },
+        {
+            "id": 49,
+            "start_point": 89,
+            "end_point": 173,
+            "requested_time": 1060,
+            "passengers": 3,
+            "eco_friendly": false,
+            "_comment": "17:40 - Centro → Casa"
+        },
+        {
+            "id": 50,
+            "start_point": 76,
+            "end_point": 124,
+            "requested_time": 1065,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "17:45 - Trabalho → Casa"
+        },
+        {
+            "id": 51,
+            "start_point": 103,
+            "end_point": 19,
+            "requested_time": 1070,
+            "passengers": 2,
+            "eco_friendly": true,
+            "_comment": "17:50 - Empresa → Casa"
+        },
+        {
+            "id": 52,
+            "start_point": 156,
+            "end_point": 42,
+            "requested_time": 1075,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "17:55 - Universidade → Casa"
+        },
+        {
+            "id": 53,
+            "start_point": 127,
+            "end_point": 51,
+            "requested_time": 1080,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "18:00 - Hospital → Casa"
+        },
+        {
+            "id": 54,
+            "start_point": 139,
+            "end_point": 61,
+            "requested_time": 1085,
+            "passengers": 2,
+            "eco_friendly": true,
+            "_comment": "18:05 - Escritório → Casa"
+        },
+        {
+            "id": 55,
+            "start_point": 93,
+            "end_point": 178,
+            "requested_time": 1095,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "18:15 - Centro → Casa"
+        },
+        {
+            "id": 56,
+            "start_point": 78,
+            "end_point": 151,
+            "requested_time": 1105,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "18:25 - Fisioterapia → Casa"
+        },
+        {
+            "id": 57,
+            "start_point": 165,
+            "end_point": 8,
+            "requested_time": 1115,
+            "passengers": 2,
+            "eco_friendly": true,
+            "_comment": "18:35 - Estação → Casa (fim rush)"
+        },
+        {
+            "id": 58,
+            "start_point": 105,
+            "end_point": 169,
+            "requested_time": 1125,
+            "passengers": 1,
+            "eco_friendly": false,
+            "_comment": "18:45 - Ginásio → Casa"
+        },
+        {
+            "id": 59,
+            "start_point": 29,
+            "end_point": 93,
+            "requested_time": 1140,
+            "passengers": 2,
+            "eco_friendly": false,
+            "_comment": "19:00 - Casa → Jantar centro"
+        },
+        {
+            "id": 60,
+            "start_point": 134,
+            "end_point": 159,
+            "requested_time": 1150,
+            "passengers": 3,
+            "eco_friendly": true,
+            "_comment": "19:10 - Casa → Restaurante"
+        },
+        {
+            "id": 61,
+            "start_point": 45,
+            "end_point": 112,
+            "requested_time": 1160,
+            "passengers": 2,
+            "eco_friendly": false,
+            "_comment": "19:20 - Casa → Cinema"
+        },
+        {
+            "id": 62,
+            "start_point": 72,
+            "end_point": 147,
+            "requested_time": 1170,
+            "passengers": 4,
+            "eco_friendly": false,
+            "_comment": "19:30 - Casa → Shopping (noite)"
+        },
+        {
+            "id": 63,
+            "start_point": 167,
+            "end_point": 81,
+            "requested_time": 1185,
+            "passengers": 2,
+            "eco_friendly": true,
+            "_comment": "19:45 - Casa → Bar"
+        }
+    ],
+    "fuel_stations": [
+        {
+            "node_id": 40,
+            "_comment": "Bomba de gasolina - Zona Sudoeste"
+        },
+        {
+            "node_id": 126,
+            "_comment": "Bomba de gasolina - Zona Norte"
+        },
+        {
+            "node_id": 137,
+            "_comment": "Bomba de gasolina - Centro-Norte"
+        },
+        {
+            "node_id": 166,
+            "_comment": "Bomba de gasolina - Zona Leste"
+        },
+        {
+            "node_id": 170,
+            "_comment": "Bomba de gasolina - Zona Leste Sul"
+        }
+    ],
+    "charging_stations": [
+        {
+            "node_id": 75,
+            "_comment": "Posto de carregamento elétrico - Centro-Oeste"
+        },
+        {
+            "node_id": 76,
+            "_comment": "Posto de carregamento elétrico - Centro"
+        },
+        {
+            "node_id": 120,
+            "_comment": "Posto de carregamento elétrico - Norte"
+        },
+        {
+            "node_id": 160,
+            "_comment": "Posto de carregamento elétrico - Leste"
+        }
+    ],
+    "events": {
+        "weather_zones": [
+            {
+                "nodes": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                "condition": "snow",
+                "time_interval": "08:00-09:30",
+                "_comment": "Nevoeiro matinal - Zona Sul (dispersa às 09:30)"
+            },
+            {
+                "nodes": [74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85],
+                "condition": "rain",
+                "time_interval": "11:00-13:00",
+                "_comment": "Chuva ao meio-dia - Centro"
+            },
+            {
+                "nodes": [140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150],
+                "condition": "rain",
+                "time_interval": "14:00-16:00",
+                "_comment": "Chuva à tarde - Zona Norte Alta"
+            },
+            {
+                "nodes": [160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170],
+                "condition": "heavy_rain",
+                "time_interval": "17:30-19:00",
+                "_comment": "Chuva forte ao fim da tarde - Zona Leste"
+            },
+            {
+                "nodes": [100, 101, 102, 103, 104, 105],
+                "condition": "fog",
+                "time_interval": "18:30-20:00",
+                "_comment": "Nevoeiro ao anoitecer - Zona Centro-Norte"
+            }
+        ],
+        "traffic_zones": [
+            {
+                "nodes": [0, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93],
+                "level": "heavy",
+                "time_interval": "08:00-09:00",
+                "_comment": "Rush hour manhã - Centro (trânsito intenso)"
+            },
+            {
+                "nodes": [74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93],
+                "level": "moderate",
+                "time_interval": "09:00-09:30",
+                "_comment": "Fim do rush manhã - Centro (a normalizar)"
+            },
+            {
+                "nodes": [111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122],
+                "level": "moderate",
+                "time_interval": "08:00-09:00",
+                "_comment": "Rush manhã - Zona Norte (escolas/empresas)"
+            },
+            {
+                "nodes": [140, 141, 142, 143, 144, 145, 146, 147],
+                "level": "light",
+                "time_interval": "08:30-09:30",
+                "_comment": "Trânsito leve manhã - Norte Alta (fábricas)"
+            },
+            {
+                "nodes": [86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99],
+                "level": "moderate",
+                "time_interval": "12:00-13:30",
+                "_comment": "Hora de almoço - Centro (restaurantes)"
+            },
+            {
+                "nodes": [74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93],
+                "level": "congested",
+                "time_interval": "17:00-18:00",
+                "_comment": "Rush hour tarde - Centro (pico máximo)"
+            },
+            {
+                "nodes": [74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93],
+                "level": "heavy",
+                "time_interval": "18:00-19:00",
+                "_comment": "Rush hour tarde - Centro (ainda intenso)"
+            },
+            {
+                "nodes": [111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125],
+                "level": "heavy",
+                "time_interval": "17:00-18:30",
+                "_comment": "Rush tarde - Zona Norte (saída trabalhos)"
+            },
+            {
+                "nodes": [140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150],
+                "level": "moderate",
+                "time_interval": "17:00-18:00",
+                "_comment": "Rush tarde - Norte Alta (fábricas)"
+            },
+            {
+                "nodes": [156, 157, 158, 159, 160, 161, 162, 163, 164, 165],
+                "level": "light",
+                "time_interval": "17:30-18:30",
+                "_comment": "Trânsito leve - Zona Leste (universidade)"
+            }
+        ],
+        "closed_roads": [
+            {
+                "from": 119,
+                "to": 134,
+                "_comment": "Estrada fechada - Obras de requalificação"
+            },
+            {
+                "from": 175,
+                "to": 176,
+                "_comment": "Rua cortada - Evento local"
+            }
+        ],
+        "_info": {
+            "simulation_day": "Dia típico de trabalho (Segunda a Sexta)",
+            "weather_conditions": {
+                "clear": "Sem impacto (1.0x)",
+                "fog": "Nevoeiro +20% tempo (1.2x)",
+                "rain": "Chuva +30% tempo (1.3x)",
+                "heavy_rain": "Chuva forte +50% tempo (1.5x)",
+                "snow": "Neve +100% tempo (2.0x)"
+            },
+            "traffic_levels": {
+                "clear": "Sem impacto (1.0x)",
+                "light": "Leve +15% tempo (1.15x)",
+                "moderate": "Moderado +30% tempo (1.3x)",
+                "heavy": "Intenso +50% tempo (1.5x)",
+                "congested": "Congestionado +100% tempo (2.0x)"
+            },
+            "request_distribution": {
+                "08:00-09:30": "Rush manhã - 20 pedidos (alta concentração)",
+                "09:30-12:00": "Manhã calma - 4 pedidos",
+                "12:00-14:00": "Almoço - 9 pedidos (moderado)",
+                "14:00-17:00": "Tarde calma - 6 pedidos",
+                "17:00-19:00": "Rush tarde - 18 pedidos (alta concentração)",
+                "19:00-20:00": "Noite - 5 pedidos (lazer)"
+            },
+            "realistic_patterns": [
+                "Manhã: Casa → Trabalho/Escola/Universidade",
+                "Almoço: Trabalho ↔ Restaurante/Casa",
+                "Tarde: Escola → Casa, Consultas médicas",
+                "Rush tarde: Trabalho → Casa",
+                "Noite: Casa → Lazer (restaurantes, cinema)"
+            ],
+            "time_format": "HH:MM-HH:MM",
+            "total_requests": 63
+        }
+    }
+}
