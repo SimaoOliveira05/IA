@@ -1,0 +1,17 @@
+Algoritmo: A*
+Heurística: Combinada (média de todas)
+----------------------------------------------------------------------
+ESTATÍSTICAS GERAIS:
+  Requests completados: 22
+  Distância total: 955923.71 metros
+  Tempo total: 1621.18 minutos
+  Custo combustível: 201.26 €
+  Emissões totais: 58427.8 g CO₂ (58.428 kg)
+----------------------------------------------------------------------
+DESEMPENHO DO ALGORITMO:
+  Número de procuras: 156
+  Tempo total: 160.41 ms
+  Tempo médio: 1.0283 ms
+  Tempo mínimo: 0.0590 ms
+  Tempo máximo: 2.6803 ms
+----------------------------------------------------------------------

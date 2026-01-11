@@ -195,6 +195,14 @@ def run_simulation(database):
     print("C = α·F + β·T + ε·R + θ·D + δ·A")
     print("(Pesos iguais: α = β = ε = θ = δ = 1.0)")
     
+    total_emissions = 0.0
+    total_distance = 0.0
+    
+    for vehicle in simulation.vehicles:
+        impact = vehicle.get_environmental_impact()
+        total_emissions += impact['total_emissions_g']
+        total_distance += impact['total_distance_km']
+            
 
     # Componentes do custo (normalizados)
     F_norm = stats.get('total_fuel_cost', 0.0)  # Já em euros
