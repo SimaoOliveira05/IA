@@ -11,6 +11,7 @@ class Request:
             multiple_people: if the client allows the uber to gather other people for the same trip
             passengers: number of passengers for the request
             eco_friendly: if the client prefers eco-friendly vehicles (electric only)
+            premium: if the client is a premium member (gets priority)
         
         Status possíveis:
             - 'pending': Request criado mas ainda não atribuído a nenhum veículo
@@ -18,7 +19,7 @@ class Request:
             - 'picked_up': Cliente apanhado, veículo a caminho do destino
             - 'completed': Viagem concluída
     '''
-    def __init__(self, start_point: Position, end_point: Position, requested_time, multiple_people: bool, passengers: int, eco_friendly: bool = False, id: int = None):
+    def __init__(self, start_point: Position, end_point: Position, requested_time, multiple_people: bool, passengers: int, eco_friendly: bool = False, premium: bool = False, id: int = None):
         self.id = id
         self.start_point = start_point
         self.end_point = end_point
@@ -26,5 +27,6 @@ class Request:
         self.multiple_people = multiple_people
         self.passengers = passengers
         self.eco_friendly = eco_friendly  # Preferência por veículos ecológicos (apenas elétricos)
+        self.premium = premium  # Cliente premium tem prioridade na atribuição de veículos
         self.status = 'pending'  # 'pending', 'assigned', 'picked_up', 'completed'
         self.assigned_vehicle = None  # referência ao veículo atribuído

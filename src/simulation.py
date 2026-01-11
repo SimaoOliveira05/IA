@@ -283,18 +283,20 @@ class Simulation:
         return best_vehicle
     
     def process_new_requests(self):
-        """Processa requests que chegam no tempo atual e ainda não foram atribuídos."""
+        """
+        Processa requests que chegam no tempo atual e ainda não foram atribuídos.
+        PRIORIDADE: Clientes premium são processados primeiro.
+        """
         new_requests = [
             r for r in self.requests 
             if r.requested_time <= self.current_time and r.status == 'pending'  # Apenas não atribuídos
         ]
         
+        # Ordena por prioridade: premium primeiro (True > False), depois por tempo de pedido
+        new_requests.sort(key=lambda r: (not r.premium, r.requested_time))
+        
         for request in new_requests:
             vehicle = self.assign_request_to_vehicle(request)
-            if vehicle:
-                # Request foi atribuído com sucesso, status mudou para 'assigned'
-                pass
-        
         return len(new_requests)
     
     def update_vehicles(self):
