@@ -1,15 +1,27 @@
-from typing import Any, List, Tuple
+from typing import Any, List, Tuple, Optional
 from graph.graph import Graph
 from graph.position import Position
+from algorithms.utils.cost_function import calculate_edge_cost
+from vehicle.vehicle_types import VehicleType
 import heapq
 import itertools
 
-def uniform_cost_search(start: Position, goal: Position, graph: Graph) -> Tuple[float, float, List[int]]:
+def uniform_cost_search(start: Position, goal: Position, graph: Graph, 
+                        vehicle_type: Optional[VehicleType] = None) -> Tuple[float, float, List[int]]:
     """
-    Uniform Cost Search - usa DISTÂNCIA como custo das arestas.
+    Uniform Cost Search - usa custo unificado das arestas.
     
-    O custo é a distância em metros. Após encontrar o caminho,
-    calcula também o tempo total (que pode ser afetado por trânsito/clima).
+    O custo combina múltiplos critérios:
+    - Tempo de resposta
+    - Custo operacional (combustível/energia)
+    - Satisfação do cliente
+    - Sustentabilidade ambiental (emissões CO₂)
+    
+    Args:
+        start: Posição inicial
+        goal: Posição objetivo
+        graph: Grafo com o mapa
+        vehicle_type: Tipo de veículo (opcional, para cálculos precisos de custo)
     
     Returns:
         Tuple[float, float, List[int]]: (distância total em metros, tempo total em minutos, caminho)
@@ -33,7 +45,9 @@ def uniform_cost_search(start: Position, goal: Position, graph: Graph) -> Tuple[
                 continue
             neighbor = graph.get_node(edge["target"])
             if neighbor.id not in visited:
-                # Usa DISTÂNCIA como custo (em metros)
+                # Usa custo unificado (tempo, custo operacional, satisfação, ambiente)
                 edge_distance = edge.get("distance", 0.0)
-                heapq.heappush(open_set, (cost + edge_distance, next(counter), neighbor, path + [neighbor.id]))
+                edge_time = edge.get("time", 0.0)
+                edge_cost = calculate_edge_cost(edge_distance, edge_time, vehicle_type)
+                heapq.heappush(open_set, (cost + edge_cost, next(counter), neighbor, path + [neighbor.id]))
     return float('inf'), float('inf'), []

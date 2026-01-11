@@ -12,13 +12,14 @@ from visualizer import Visualizer
 class Menu:
     """Classe para gerenciar o menu da aplicação."""
     
-    from algorithms import ALGORITHMS as ALGO_DICT
+    # Dicionário de algoritmos: (nome, função, é_informado)
+    # Import movido para fora da classe para melhor prática
     ALGORITHMS = {
-        '1': ('A*', ALGO_DICT['a_star'], True),
-        '2': ('Greedy', ALGO_DICT['greedy'], True),
-        '3': ('BFS', ALGO_DICT['bfs'], False),
-        '4': ('DFS', ALGO_DICT['dfs'], False),
-        '5': ('Uniform Cost', ALGO_DICT['uniform_cost'], False),
+        '1': ('A*', ALGORITHMS['a_star'], True),
+        '2': ('Greedy', ALGORITHMS['greedy'], True),
+        '3': ('BFS', ALGORITHMS['bfs'], False),
+        '4': ('DFS', ALGORITHMS['dfs'], False),
+        '5': ('Uniform Cost', ALGORITHMS['uniform_cost'], False),
     }
     
     @staticmethod
@@ -177,6 +178,16 @@ def run_simulation(database):
     print(f"Tempo total:          {stats['total_time']:.2f} minutos")
     print(f"Custo combustível:    {stats['total_fuel_cost']:.2f} €")
     
+    # Estatísticas de tempo de procura do algoritmo
+    print("\n" + "-"*60)
+    print("           ⏱️  DESEMPENHO DO ALGORITMO")
+    print("-"*60)
+    print(f"Número de procuras:   {stats.get('search_count', 0)}")
+    print(f"Tempo total:          {stats.get('search_time_total_ms', 0):.2f} ms")
+    print(f"Tempo médio:          {stats.get('search_time_avg_ms', 0):.4f} ms")
+    print(f"Tempo mínimo:         {stats.get('search_time_min_ms', 0):.4f} ms")
+    print(f"Tempo máximo:         {stats.get('search_time_max_ms', 0):.4f} ms")
+    
     # Estatísticas ambientais
     print("\n" + "-"*60)
     print("           🌱 IMPACTO AMBIENTAL")
@@ -212,6 +223,7 @@ def run_simulation(database):
     print("C = α·F + β·T + ε·R + θ·D + δ·A")
     print("(Pesos iguais: α = β = ε = θ = δ = 1.0)")
     
+
     # Componentes do custo (normalizados)
     F_norm = stats.get('total_fuel_cost', 0.0)  # Já em euros
     T_norm = stats['total_time'] / 60.0  # Converte minutos para horas
@@ -234,6 +246,66 @@ def run_simulation(database):
     print(f"\n💰 CUSTO TOTAL: C = {C:.2f}")
     
     print("="*60 + "\n")
+    
+    # Exporta resultados para ficheiro
+    export_results_to_file(
+        algo_name=algo_name,
+        heuristic=heuristic,
+        stats=stats,
+        total_emissions=total_emissions,
+        total_distance=total_distance,
+        C=C,
+        F_norm=F_norm,
+        T_norm=T_norm,
+        R_norm=R_norm,
+        D_norm=D_norm,
+        A_norm=A_norm
+    )
+
+
+def export_results_to_file(algo_name, heuristic, stats, total_emissions, total_distance,
+                           C, F_norm, T_norm, R_norm, D_norm, A_norm,
+                           filename="../data/resultados_simulacao.txt"):
+    """
+    Exporta os resultados da simulação para um ficheiro de texto.
+    Faz append para permitir múltiplas simulações no mesmo ficheiro.
+    
+    Args:
+        algo_name: Nome do algoritmo usado
+        heuristic: Heurística usada (ou None)
+        stats: Dicionário com estatísticas da simulação
+        total_emissions: Total de emissões em gramas
+        total_distance: Distância total em km
+        C: Custo total calculado
+        F_norm, T_norm, R_norm, D_norm, A_norm: Componentes normalizados
+        filename: Nome do ficheiro de saída
+    """
+    from datetime import datetime
+    from algorithms.informed.heuristics import HEURISTICS
+    
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    heuristic_name = HEURISTICS.get(heuristic, "N/A") if heuristic else "N/A"
+    
+    with open(filename, "a", encoding="utf-8") as f:
+        f.write(f"Algoritmo: {algo_name}\n")
+        f.write(f"Heurística: {heuristic_name}\n")
+        f.write("-"*70 + "\n")
+        f.write("ESTATÍSTICAS GERAIS:\n")
+        f.write(f"  Requests completados: {stats['requests_completed']}\n")
+        f.write(f"  Distância total: {stats['total_distance']:.2f} metros\n")
+        f.write(f"  Tempo total: {stats['total_time']:.2f} minutos\n")
+        f.write(f"  Custo combustível: {stats['total_fuel_cost']:.2f} €\n")
+        f.write(f"  Emissões totais: {total_emissions:.1f} g CO₂ ({total_emissions/1000:.3f} kg)\n")
+
+        f.write("-"*70 + "\n")
+        f.write("DESEMPENHO DO ALGORITMO:\n")
+        f.write(f"  Número de procuras: {stats.get('search_count', 0)}\n")
+        f.write(f"  Tempo total: {stats.get('search_time_total_ms', 0):.2f} ms\n")
+        f.write(f"  Tempo médio: {stats.get('search_time_avg_ms', 0):.4f} ms\n")
+        f.write(f"  Tempo mínimo: {stats.get('search_time_min_ms', 0):.4f} ms\n")
+        f.write(f"  Tempo máximo: {stats.get('search_time_max_ms', 0):.4f} ms\n")
+        f.write("-"*70 + "\n")
+    print(f"📁 Resultados exportados para: {filename}")
 
 
 def list_vehicles(database):

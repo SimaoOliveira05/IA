@@ -5,22 +5,27 @@ Implementação do algoritmo A* com suporte a múltiplos critérios de heurísti
 - 'cost': Heurística de custo operacional
 - 'combined': Heurística combinada
 
-IMPORTANTE: O custo g(n) das arestas é DISTÂNCIA (em metros).
+IMPORTANTE: O custo g(n) das arestas usa a função de custo unificada que combina:
+- Tempo de resposta
+- Custo operacional (combustível/energia)
+- Satisfação do cliente
+- Sustentabilidade ambiental (emissões CO₂)
+
 A heurística h(n) varia conforme o critério escolhido.
-Os algoritmos informados podem usar heurísticas que consideram tempo/clima/trânsito
-para encontrar caminhos mais inteligentes.
 """
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from graph.graph import Graph
 from graph.position import Position
 import heapq
 import itertools
 
-# Importa preços de energia/combustível
+# Importa preços de energia/combustível e função de custo
 from algorithms.informed.heuristics import calculate_heuristic
+from algorithms.utils.cost_function import calculate_edge_cost
+from vehicle.vehicle_types import VehicleType
 
 def a_star(start: Position, goal: Position, graph: Graph, criterion: str = 'distance', 
-           event_manager=None, current_time: int = None) -> Tuple[float, float, List[int]]:
+           event_manager=None, current_time: int = None, vehicle_type: Optional[VehicleType] = None) -> Tuple[float, float, List[int]]:
     """
     A* Search - usa DISTÂNCIA como custo g(n) das arestas, com heurística variável h(n).
     
@@ -31,6 +36,7 @@ def a_star(start: Position, goal: Position, graph: Graph, criterion: str = 'dist
         criterion: Tipo de heurística ('distance', 'time', 'cost', 'combined', etc.)
         event_manager: Gestor de eventos (opcional, para heurísticas que consideram clima/trânsito)
         current_time: Tempo atual em minutos (opcional, usado para verificar intervalos de eventos)
+        vehicle_type: Tipo de veículo (opcional, necessário para heurísticas de custo)
     
     Returns:
         Tuple[float, float, List[int]]: (distância total em metros, tempo total em minutos, caminho)
@@ -47,7 +53,8 @@ def a_star(start: Position, goal: Position, graph: Graph, criterion: str = 'dist
     g_score[start_node.id] = 0
     
     h_start = calculate_heuristic(start_node.position, goal_node.position, criterion, 
-                                   event_manager=event_manager, node_id=start_node.id, current_time=current_time)
+                                   vehicle_type=vehicle_type, event_manager=event_manager, 
+                                   node_id=start_node.id, current_time=current_time)
     f_score = {node.id: float('inf') for node in graph.nodes}
     f_score[start_node.id] = h_start
     
@@ -72,9 +79,11 @@ def a_star(start: Position, goal: Position, graph: Graph, criterion: str = 'dist
                 continue
             neighbor = graph.get_node(edge["target"])
             
-            # g(n) é DISTÂNCIA (em metros)
+            # g(n) é o custo unificado (tempo, custo operacional, satisfação, ambiente)
             edge_distance = edge.get("distance", 0.0)
-            tentative_g_score = g_score[current.id] + edge_distance
+            edge_time = edge.get("time", 0.0)
+            edge_cost = calculate_edge_cost(edge_distance, edge_time, vehicle_type)
+            tentative_g_score = g_score[current.id] + edge_cost
             
             if tentative_g_score < g_score[neighbor.id]:
                 came_from[neighbor.id] = current
@@ -82,7 +91,8 @@ def a_star(start: Position, goal: Position, graph: Graph, criterion: str = 'dist
                 
                 # h(n) varia conforme o critério da heurística
                 h_score = calculate_heuristic(neighbor.position, goal_node.position, criterion,
-                                              event_manager=event_manager, node_id=neighbor.id, current_time=current_time)
+                                              vehicle_type=vehicle_type, event_manager=event_manager, 
+                                              node_id=neighbor.id, current_time=current_time)
                 f_score[neighbor.id] = tentative_g_score + h_score
                 heapq.heappush(open_set, (f_score[neighbor.id], next(counter), neighbor))
                 

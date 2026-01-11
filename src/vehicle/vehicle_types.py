@@ -53,10 +53,12 @@ class Eletric(VehicleType):
     Inclui atributos para capacidade de bateria, consumo e bateria atual.
     """
     
-    def __init__(self, battery_capacity: float, battery_consumption: float, current_battery: float) -> None:
+    def __init__(self, battery_capacity: float, battery_consumption: float, current_battery: float, 
+                 average_speed: float = 50.0) -> None:
         self.battery_capacity: float = battery_capacity  # kWh
-        self.battery_consumption: float = battery_consumption  # kWh/km
+        self.battery_consumption: float = battery_consumption  # kWh/100km
         self.current_battery: float = current_battery
+        self.average_speed: float = average_speed  # km/h
 
     def consume(self, distance: float) -> None:
         """
@@ -114,10 +116,12 @@ class Combustion(VehicleType):
     Inclui atributos para capacidade de combustível, consumo e combustível atual.
     """
     
-    def __init__(self, fuel_capacity: float, fuel_consumption: float, current_fuel: float) -> None:
+    def __init__(self, fuel_capacity: float, fuel_consumption: float, current_fuel: float,
+                 average_speed: float = 50.0) -> None:
         self.fuel_capacity: float = fuel_capacity  # Litros
-        self.fuel_consumption: float = fuel_consumption  # L/km
+        self.fuel_consumption: float = fuel_consumption  # L/100km
         self.current_fuel: float = current_fuel
+        self.average_speed: float = average_speed  # km/h
 
     def consume(self, distance: float) -> None:
         """
@@ -186,14 +190,16 @@ class Hybrid(VehicleType):
         fuel_capacity: float,
         fuel_consumption: float, 
         current_battery: float, 
-        current_fuel: float
+        current_fuel: float,
+        average_speed: float = 50.0
     ) -> None:
         self.battery_capacity: float = battery_capacity
-        self.battery_consumption: float = battery_consumption  # kWh/km
+        self.battery_consumption: float = battery_consumption  # kWh/100km
         self.fuel_capacity: float = fuel_capacity
-        self.fuel_consumption: float = fuel_consumption  # L/km
+        self.fuel_consumption: float = fuel_consumption  # L/100km
         self.current_fuel: float = current_fuel
         self.current_battery: float = current_battery
+        self.average_speed: float = average_speed  # km/h
     
     def consume(self, distance: float) -> None:
         """

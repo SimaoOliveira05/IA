@@ -3,12 +3,12 @@ Módulo de simulação do sistema de táxis.
 Responsável pela lógica de negócio da simulação.
 """
 
+import time
 from refuel_helper import (
     needs_refuel, 
     get_refuel_time, 
     find_nearest_station, 
     get_station_type_for_vehicle,
-    calculate_total_distance
 )
 from vehicle.vehicle_types import Eletric
 
@@ -51,25 +51,62 @@ class Simulation:
             'total_fuel_cost': 0.0,
             'requests_not_served': 0
         }
+        
+        # Estatísticas de tempo de procura do algoritmo
+        self.search_times = []  # Lista de tempos de cada procura (em ms)
     
-    def search_algorithm(self, start, goal, graph):
+    def search_algorithm(self, start, goal, graph, vehicle=None):
         """
         Wrapper para chamar o algoritmo de busca com ou sem heurística.
+        Agora normalizado: tanto A* como Greedy usam 'criterion'.
+        Mede o tempo de execução de cada procura.
+        
+        Args:
+            start: Posição inicial
+            goal: Posição objetivo  
+            graph: Grafo
+            vehicle: Veículo (opcional, para passar vehicle_type às heurísticas)
         """
         import inspect
         sig = inspect.signature(self.search_algorithm_func)
         params = sig.parameters
         
-        # Verifica se o algoritmo aceita heurística/criterion
-        if 'heuristic' in params and self.heuristic:
-            # Greedy usa 'heuristic'
-            return self.search_algorithm_func(start, goal, graph, heuristic=self.heuristic)
-        elif 'criterion' in params and self.heuristic:
-            # A* usa 'criterion'
-            return self.search_algorithm_func(start, goal, graph, criterion=self.heuristic)
+        # Mede tempo de execução
+        start_time = time.perf_counter()
+        
+        # Prepara vehicle_type se disponível
+        vehicle_type = vehicle.vehicle_type if vehicle else None
+        
+        # Verifica se o algoritmo aceita 'criterion' (algoritmos informados: A*, Greedy)
+        if 'criterion' in params and self.heuristic:
+            # Prepara argumentos opcionais
+            kwargs = {'criterion': self.heuristic}
+            
+            if 'vehicle_type' in params:
+                kwargs['vehicle_type'] = vehicle_type
+            
+            # Passa event_manager e current_time para heurísticas de tempo/trânsito
+            if 'event_manager' in params and hasattr(self.db, 'event_manager'):
+                kwargs['event_manager'] = self.db.event_manager
+            
+            if 'current_time' in params:
+                kwargs['current_time'] = self.current_time
+            
+            result = self.search_algorithm_func(start, goal, graph, **kwargs)
         else:
             # Algoritmos não informados (BFS, DFS, Uniform Cost)
-            return self.search_algorithm_func(start, goal, graph)
+            # Uniform Cost também aceita vehicle_type para cálculo de custo
+            if 'vehicle_type' in params:
+                result = self.search_algorithm_func(start, goal, graph, vehicle_type=vehicle_type)
+            else:
+                result = self.search_algorithm_func(start, goal, graph)
+        
+        # Regista tempo de execução (em milissegundos)
+        end_time = time.perf_counter()
+        search_time_ms = (end_time - start_time) * 1000
+        self.search_times.append(search_time_ms)
+        
+        return result
     
     def reset(self):
         """Reset da simulação para estado inicial."""
@@ -80,6 +117,7 @@ class Simulation:
             'total_distance': 0,
             'total_time': 0
         }
+        self.search_times = []  # Reset tempos de procura
     
     def is_finished(self):
         """Verifica se a simulação terminou."""
@@ -134,6 +172,7 @@ class Simulation:
         best_cost = float('inf')
         best_paths = None
         best_refuel_info = None
+        best_real_distance = 0.0  # Inicializa para evitar erro se nenhum veículo for compatível
         
         for vehicle in available_vehicles:
             # Verifica se o veículo tem capacidade suficiente para o pedido
@@ -146,19 +185,19 @@ class Simulation:
             dist1, time1, path1 = self.search_algorithm(
                 vehicle.current_position, 
                 request.start_point, 
-                self.graph
+                self.graph,
+                vehicle=vehicle
             )
 
             # Caminho: pickup → destino
             dist2, time2, path2 = self.search_algorithm(
                 request.start_point, 
                 request.end_point, 
-                self.graph
+                self.graph,
+                vehicle=vehicle
             )
 
-            # Calcula distância total da viagem completa
-            total_distance = calculate_total_distance(self.graph, path1)
-            total_distance += calculate_total_distance(self.graph, path2)
+            total_distance = dist1 + dist2
 
             # Verifica se precisa abastecer
             refuel_needed = needs_refuel(vehicle, total_distance)
@@ -180,14 +219,16 @@ class Simulation:
                     station_dist, station_time, station_path = self.search_algorithm(
                         vehicle.current_position,
                         refuel_station.position,
-                        self.graph
+                        self.graph,
+                        vehicle=vehicle
                     )
 
                     # Recalcula caminho da estação até o pickup
                     dist1_new, time1_new, path1_new = self.search_algorithm(
                         refuel_station.position,
                         request.start_point,
-                        self.graph
+                        self.graph,
+                        vehicle=vehicle
                     )
 
                     # Tempo total de abastecimento (baseado no tipo de estação)
@@ -201,11 +242,8 @@ class Simulation:
                     path1 = path1_new
                     
                     # IMPORTANTE: Recalcula distância REAL com o novo caminho
-                    total_distance = calculate_total_distance(self.graph, station_path)
-                    total_distance += calculate_total_distance(self.graph, path1_new)
-                    total_distance += calculate_total_distance(self.graph, path2)
+                    total_distance = station_dist + dist1_new + dist2
 
-            # MUDANÇA CRÍTICA: Usa TEMPO como critério de escolha do melhor veículo
             total_time_cost = time1 + time2
 
             if total_time_cost < best_cost:
@@ -309,6 +347,20 @@ class Simulation:
         # Requests não atendidos (finalizou simulação com status 'pending')
         if self.is_finished():
             self.stats['requests_not_served'] = self.stats['requests_pending']
+        
+        # Estatísticas de tempo de procura do algoritmo
+        if self.search_times:
+            self.stats['search_count'] = len(self.search_times)
+            self.stats['search_time_total_ms'] = sum(self.search_times)
+            self.stats['search_time_avg_ms'] = sum(self.search_times) / len(self.search_times)
+            self.stats['search_time_min_ms'] = min(self.search_times)
+            self.stats['search_time_max_ms'] = max(self.search_times)
+        else:
+            self.stats['search_count'] = 0
+            self.stats['search_time_total_ms'] = 0
+            self.stats['search_time_avg_ms'] = 0
+            self.stats['search_time_min_ms'] = 0
+            self.stats['search_time_max_ms'] = 0
     
     def step(self):
         """

@@ -124,27 +124,3 @@ def get_station_type_for_vehicle(vehicle):
     return "fuel"  # Default
 
 
-def calculate_total_distance(graph, path):
-    """
-    Calcula a distância total de um caminho.
-    
-    Args:
-        graph: Grafo
-        path: Lista de IDs de nós
-        
-    Returns:
-        float: Distância total em metros
-    """
-    total_distance = 0
-    
-    for i in range(len(path) - 1):
-        node_from = path[i]
-        node_to = path[i + 1]
-        edges = graph.edges.get(node_from, [])
-        
-        for edge in edges:
-            if edge["target"] == node_to:
-                total_distance += edge["distance"]
-                break
-    
-    return total_distance

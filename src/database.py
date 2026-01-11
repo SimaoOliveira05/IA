@@ -45,14 +45,16 @@ def load_dataset(dataset_path) -> Database:
             vehicle_type = Eletric(
                 battery_capacity = vehicle["battery_capacity"],
                 current_battery = vehicle["current_battery"],
-                battery_consumption = vehicle["battery_consumption"]
+                battery_consumption = vehicle["battery_consumption"],
+                average_speed = vehicle.get("average_speed", 50.0)
             )
 
         elif vehicle["type"] == "combustion":
             vehicle_type = Combustion(
                 fuel_capacity = vehicle["fuel_capacity"],
                 current_fuel = vehicle["current_fuel"],
-                fuel_consumption = vehicle["fuel_consumption"]
+                fuel_consumption = vehicle["fuel_consumption"],
+                average_speed = vehicle.get("average_speed", 50.0)
             )
 
         elif vehicle["type"] == "hybrid":
@@ -62,7 +64,8 @@ def load_dataset(dataset_path) -> Database:
                 battery_consumption = vehicle["battery_consumption"],
                 fuel_capacity = vehicle["fuel_capacity"],
                 current_fuel = vehicle["current_fuel"],
-                fuel_consumption = vehicle["fuel_consumption"]
+                fuel_consumption = vehicle["fuel_consumption"],
+                average_speed = vehicle.get("average_speed", 50.0)
             )
         else:
             raise ValueError(f"Unknown vehicle type: {vehicle['type']}")

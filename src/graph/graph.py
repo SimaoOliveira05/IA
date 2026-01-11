@@ -46,7 +46,6 @@ class Graph:
         position = Position(x, y)
         node = Node(self.next_id, position, node_type=node_type, capacity=capacity)
         node.set_id(self.next_id)
-        print(node.id)
 
         self.nodes.append(node)
         self.edges[self.next_id] = []
@@ -89,15 +88,18 @@ class Graph:
             time_hours = (distance * 0.001) / edge_speed
             time_seconds = time_hours * 3600
         
-        # TRANSFORMAÇÃO DE ESCALA: segundos -> "minutos" (22s -> 22min)
-        # Isto mantém os valores numéricos mas muda a semântica para a simulação
-        time_minutes = time_seconds / 2  # 22 segundos reais tornam-se 22 "minutos" de simulação
+        # TRANSFORMAÇÃO DE ESCALA: multiplica por 10 para simular área maior
+        # 200m reais → 2000m (2km) na simulação
+        # 20s reais → 200s na simulação (convertido para minutos: 200/60 ≈ 3.3 min)
+        SCALE_FACTOR = 15
+        scaled_distance = distance * SCALE_FACTOR
+        scaled_time_minutes = (time_seconds * SCALE_FACTOR) / 60.0  # segundos → minutos
 
         # Cria a aresta direta
         edge_info = {
             "target": id2,
-            "distance": distance,
-            "time": time_minutes,  # Tempo em "minutos" de simulação
+            "distance": scaled_distance,
+            "time": scaled_time_minutes,  # Tempo em minutos de simulação
             "open": open
         }
         self.edges[id1].append(edge_info)
@@ -106,8 +108,8 @@ class Graph:
         if not self.directed:
             reverse_info = {
                 "target": id1,
-                "distance": distance,
-                "time": time_minutes,
+                "distance": scaled_distance,
+                "time": scaled_time_minutes,
                 "open": open
             }
             self.edges[id2].append(reverse_info)

@@ -21,10 +21,10 @@ class WeatherCondition(Enum):
         """
         multipliers = {
             WeatherCondition.CLEAR: 1.0,
-            WeatherCondition.RAIN: 1.3,
-            WeatherCondition.HEAVY_RAIN: 1.5,
-            WeatherCondition.FOG: 1.2,
-            WeatherCondition.SNOW: 2.0,
+            WeatherCondition.RAIN: 1.5,
+            WeatherCondition.HEAVY_RAIN: 2,
+            WeatherCondition.FOG: 2.5,
+            WeatherCondition.SNOW: 5,
         }
         return multipliers.get(self, 1.0)
 
@@ -44,10 +44,10 @@ class TrafficLevel(Enum):
         """
         multipliers = {
             TrafficLevel.CLEAR: 1.0,
-            TrafficLevel.LIGHT: 1.15,
-            TrafficLevel.MODERATE: 1.3,
-            TrafficLevel.HEAVY: 1.5,
-            TrafficLevel.CONGESTED: 2.0,
+            TrafficLevel.LIGHT: 2,
+            TrafficLevel.MODERATE: 3,
+            TrafficLevel.HEAVY: 5,
+            TrafficLevel.CONGESTED: 8,
         }
         return multipliers.get(self, 1.0)
 
