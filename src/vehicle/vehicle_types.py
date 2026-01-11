@@ -3,13 +3,16 @@ Tipos de veículos (Elétrico, Combustão, Híbrido).
 Define as diferentes fontes de energia e consumo dos veículos.
 """
 from abc import ABC, abstractmethod
-import sys
-import os
 
-# Adiciona o diretório pai ao path para imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import EMISSIONS_COMBUSTION_G_PER_KM, EMISSIONS_HYBRID_G_PER_KM
-
+# Constantes importadas do config
+try:
+    from config import EMISSIONS_COMBUSTION_G_PER_KM, EMISSIONS_HYBRID_G_PER_KM
+except ImportError:
+    # Fallback se executado de outro diretório
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from config import EMISSIONS_COMBUSTION_G_PER_KM, EMISSIONS_HYBRID_G_PER_KM
 
 class VehicleType(ABC):
     """Classe base abstrata para tipos de veículos."""
@@ -217,9 +220,9 @@ class Hybrid(VehicleType):
         """
         distance_km: float = distance / 1000
         
-        # Consumo por km (não por 100km)
-        battery_consumption_per_km: float = self.battery_consumption / 100
-        fuel_consumption_per_km: float = self.fuel_consumption / 100
+        # Consumo por km (não por 100km) com fator de escala
+        battery_consumption_per_km: float = (self.battery_consumption / 100) 
+        fuel_consumption_per_km: float = (self.fuel_consumption / 100)
         
         # Tenta usar bateria primeiro
         needed_battery: float = battery_consumption_per_km * distance_km
@@ -240,9 +243,9 @@ class Hybrid(VehicleType):
         """Verifica se tem energia suficiente (bateria + combustível)."""
         distance_km: float = distance / 1000
         
-        # Consumo por km (não por 100km)
-        battery_consumption_per_km: float = self.battery_consumption / 100 if self.battery_consumption > 0 else 0
-        fuel_consumption_per_km: float = self.fuel_consumption / 100 if self.fuel_consumption > 0 else 0
+        # Consumo por km (não por 100km) com fator de escala
+        battery_consumption_per_km: float = (self.battery_consumption / 100) if self.battery_consumption > 0 else 0
+        fuel_consumption_per_km: float = (self.fuel_consumption / 100) if self.fuel_consumption > 0 else 0
         
         # Calcula distância total que consegue percorrer
         battery_distance_km: float = self.current_battery / battery_consumption_per_km if battery_consumption_per_km > 0 else 0

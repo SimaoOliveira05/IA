@@ -53,7 +53,6 @@ PESO_AMBIENTE = 0.15             # Peso da sustentabilidade ambiental
 # =============================================================================
 # NORMALIZAÇÃO (BASE PARA 1KM)
 # =============================================================================
-TEMPO_BASE_MIN = 1.2             # ~1.2 min para percorrer 1km a 50km/h
 CUSTO_BASE_EUR = 0.15            # ~0.15€ por km (média entre elétrico e combustão)
 EMISSOES_BASE_G = 60.0           # ~60g CO₂/km (média considerando mix de veículos)
 

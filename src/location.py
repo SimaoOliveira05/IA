@@ -3,7 +3,9 @@ from graph.position import Position
 import osmnx as ox
 import math
 
-def create_location_graph(place_name : str, min_distance: float = 100) -> Graph: 
+from config import SCALE_FACTOR 
+
+def create_location_graph(place_name : str, min_distance: float = 100 * SCALE_FACTOR) -> Graph: 
     """
     Cria um grafo da rede viária de uma dada localização, usando coordenadas projetadas (em metros).
     O grafo é convertido para a estrutura definida Graph() com nós e arestas.
@@ -47,6 +49,9 @@ def create_location_graph(place_name : str, min_distance: float = 100) -> Graph:
     for osm_id, data in nodes.iterrows():
         x, y = data['x'], data['y']
         
+        x = x * SCALE_FACTOR
+        y = y * SCALE_FACTOR
+
         # Verifica se há algum nodo próximo já criado
         close_node_id = find_close_node(x, y, graph.nodes, min_distance)
         

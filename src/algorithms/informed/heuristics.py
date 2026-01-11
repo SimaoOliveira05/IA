@@ -2,18 +2,29 @@
 from typing import Optional
 from graph.position import Position
 from vehicle.vehicle_types import Eletric, Combustion, Hybrid, VehicleType
-import sys
-import os
 
-# Adiciona o diretório pai ao path para imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from config import (
-    PRECO_BATERIA, PRECO_COMBUSTIVEL,
-    DEFAULT_SPEED_KMH, COST_PER_KM, COST_PER_MIN,
-    EURO_TO_METERS, CO2_TO_METERS,
-    TRAFFIC_PENALTIES, TRAFFIC_PROPAGATION_FACTOR,
-    EMISSIONS_COMBUSTION_G_PER_KM
-)
+# Constantes importadas do config
+try:
+    from config import (
+        PRECO_BATERIA, PRECO_COMBUSTIVEL,
+        DEFAULT_SPEED_KMH, COST_PER_KM, COST_PER_MIN,
+        EURO_TO_METERS, CO2_TO_METERS,
+        TRAFFIC_PENALTIES, TRAFFIC_PROPAGATION_FACTOR,
+        EMISSIONS_COMBUSTION_G_PER_KM
+    )
+    from utils.vehicle_costs import calculate_fuel_cost, calculate_emissions
+except ImportError:
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from config import (
+        PRECO_BATERIA, PRECO_COMBUSTIVEL,
+        DEFAULT_SPEED_KMH, COST_PER_KM, COST_PER_MIN,
+        EURO_TO_METERS, CO2_TO_METERS,
+        TRAFFIC_PENALTIES, TRAFFIC_PROPAGATION_FACTOR,
+        EMISSIONS_COMBUSTION_G_PER_KM
+    )
+    from utils.vehicle_costs import calculate_fuel_cost, calculate_emissions
 
 
 # =============================================================================
@@ -41,12 +52,12 @@ def _heuristic_time(dist_meters: float, dist_km: float, speed_kmh: float,
     
     # Aplica multiplicador combinado de clima + trânsito se disponível
     if event_manager is not None and node_id is not None:
-        multiplier = event_manager.get_combined_multiplier(node_id, current_time)
+        multiplier = event_manager.get_weather_multiplier(node_id, current_time) * event_manager.get_traffic_multiplier(node_id, current_time)
         time_minutes = base_time * multiplier
         meters_equivalent = time_minutes * (speed_kmh * 1000.0 / 60.0)
         return meters_equivalent
     
-    return base_time
+    return base_time * (speed_kmh * 1000.0 / 60.0)
 
 
 def _heuristic_cost(dist_meters: float, dist_km: float, speed_kmh: float,
@@ -54,33 +65,9 @@ def _heuristic_cost(dist_meters: float, dist_km: float, speed_kmh: float,
                     node_id: int, current_time: int) -> float:
     """
     Heurística de custo operacional em euros.
-    Calcula custo usando consumo real do veículo.
+    Usa função centralizada para calcular custo.
     """
-    if vehicle_type is None:
-        custo_euros = dist_km * COST_PER_KM
-    elif isinstance(vehicle_type, Eletric):
-        # battery_consumption em kWh/100km
-        energia_necessaria = (vehicle_type.battery_consumption / 100.0) * dist_km
-        custo_euros = energia_necessaria * PRECO_BATERIA
-    elif isinstance(vehicle_type, Combustion):
-        # fuel_consumption em L/100km
-        combustivel_necessario = (vehicle_type.fuel_consumption / 100.0) * dist_km
-        custo_euros = combustivel_necessario * PRECO_COMBUSTIVEL
-    elif isinstance(vehicle_type, Hybrid):
-        # Híbrido: usa bateria primeiro, depois combustível
-        consumo_bateria_por_km = vehicle_type.battery_consumption / 100.0
-        consumo_combustivel_por_km = vehicle_type.fuel_consumption / 100.0
-        bateria_km = vehicle_type.current_battery / consumo_bateria_por_km if consumo_bateria_por_km > 0 else 0
-        if dist_km <= bateria_km:
-            energia_necessaria = consumo_bateria_por_km * dist_km
-            custo_euros = energia_necessaria * PRECO_BATERIA
-        else:
-            energia_necessaria = consumo_bateria_por_km * bateria_km
-            combustivel_necessario = consumo_combustivel_por_km * (dist_km - bateria_km)
-            custo_euros = energia_necessaria * PRECO_BATERIA + combustivel_necessario * PRECO_COMBUSTIVEL
-    else:
-        custo_euros = dist_km * COST_PER_KM
-    
+    custo_euros = calculate_fuel_cost(vehicle_type, dist_km)
     return custo_euros * EURO_TO_METERS
 
 
@@ -89,34 +76,16 @@ def _heuristic_environmental(dist_meters: float, dist_km: float, speed_kmh: floa
                              node_id: int, current_time: int) -> float:
     """
     Heurística de impacto ambiental (emissões CO₂).
-    Emissões baseadas no consumo real do veículo.
+    Usa função centralizada para calcular emissões.
     
     NOTA: Para veículos elétricos (emissões = 0), usa distância como fallback
     para manter a heurística informativa e evitar exploração excessiva.
     """
-    if vehicle_type is None:
-        # Sem veículo, assume combustão média
-        emissoes_g = EMISSIONS_COMBUSTION_G_PER_KM * dist_km
-    elif isinstance(vehicle_type, Eletric):
-        # Elétricos não têm emissões, mas precisamos de uma heurística válida
-        # Usa distância como fallback (já é a opção mais "verde")
+    emissoes_g = calculate_emissions(vehicle_type, dist_km)
+    
+    # Se emissões são zero (elétrico ou híbrido com bateria), usa distância como fallback
+    if emissoes_g == 0.0:
         return dist_meters
-    elif isinstance(vehicle_type, Combustion):
-        # Emissões proporcionais ao consumo: ~2.3kg CO₂ por litro de gasolina
-        consumo_por_km = vehicle_type.fuel_consumption / 100.0
-        emissoes_g = consumo_por_km * 2300.0 * dist_km
-    elif isinstance(vehicle_type, Hybrid):
-        consumo_bateria_por_km = vehicle_type.battery_consumption / 100.0
-        bateria_km = vehicle_type.current_battery / consumo_bateria_por_km if consumo_bateria_por_km > 0 else 0
-        if bateria_km >= dist_km:
-            # Toda a viagem com bateria - usa distância como fallback
-            return dist_meters
-        else:
-            combustao_km = dist_km - bateria_km
-            consumo_combustivel_por_km = vehicle_type.fuel_consumption / 100.0
-            emissoes_g = consumo_combustivel_por_km * 2300.0 * combustao_km
-    else:
-        emissoes_g = EMISSIONS_COMBUSTION_G_PER_KM * dist_km
     
     # Converte emissões para "distância equivalente" para compatibilidade
     return emissoes_g * CO2_TO_METERS
@@ -219,11 +188,6 @@ def calculate_heuristic(pos1: Position, pos2: Position, criterion: str,
         return heuristic_functions[criterion](dist_meters, dist_km, speed_kmh, 
                                                vehicle_type, event_manager, 
                                                node_id, current_time)
-    
-    # Fallback: usa heurística de distância
-    return _heuristic_distance(dist_meters, dist_km, speed_kmh, vehicle_type, 
-                                event_manager, node_id, current_time)
-
 
 # =============================================================================
 # DICIONÁRIO DE HEURÍSTICAS DISPONÍVEIS

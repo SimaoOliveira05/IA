@@ -190,7 +190,6 @@ class Vehicle:
 
     def _transition_to_refueling(self) -> None:
         """Transição: chegou à estação de abastecimento."""
-        print(f"✓ Veículo {self.id} chegou à estação (nó {self.current_node_id})")
         self.phase = 'refueling'
         self.status = Vehicle_Status.REFUELING if hasattr(Vehicle_Status, 'REFUELING') else Vehicle_Status.IDLE
 
@@ -251,7 +250,6 @@ class Vehicle:
         self.refuel_time_remaining -= time_step
         
         if self.refuel_time_remaining <= 0:
-            print(f"✓ Veículo {self.id} terminou de abastecer")
             self._complete_refuel()
             
             # Muda para fase to_pickup
@@ -272,10 +270,8 @@ class Vehicle:
             # Híbrido: abastece baseado no tipo de estação
             if self.refuel_station_type == "fuel":
                 self.vehicle_type.current_fuel = self.vehicle_type.fuel_capacity
-                print(f"   Combustível reabastecido: 100%")
             elif self.refuel_station_type == "charging":
                 self.vehicle_type.current_battery = self.vehicle_type.battery_capacity
-                print(f"   Bateria recarregada: 100%")
 
     def _process_travel(self, time_step: int) -> None:
         """Processa o movimento do veículo durante a viagem."""
@@ -336,15 +332,57 @@ class Vehicle:
             distance: Distância percorrida em metros
         """
         if distance > 0:
-            # Calcula emissões ANTES de consumir (para híbridos que podem mudar de modo)
-            emissions = self.vehicle_type.calculate_emissions(distance)
-            self.total_emissions += emissions
+            # Para híbridos, guarda estado da bateria ANTES de consumir
+            # para calcular emissões corretamente
+            battery_before = None
+            if isinstance(self.vehicle_type, Hybrid):
+                battery_before = self.vehicle_type.current_battery
             
-            # Consome energia
+            # Consome energia primeiro
             self.vehicle_type.consume(distance)
+            
+            # Calcula emissões DEPOIS de consumir
+            # Para híbridos, usa o estado anterior da bateria
+            if isinstance(self.vehicle_type, Hybrid) and battery_before is not None:
+                emissions = self._calculate_hybrid_emissions(distance, battery_before)
+            else:
+                emissions = self.vehicle_type.calculate_emissions(distance)
+            
+            self.total_emissions += emissions
             
             # Rastreia distância total
             self.total_distance_traveled += distance
+    
+    def _calculate_hybrid_emissions(self, distance: float, battery_before: float) -> float:
+        """
+        Calcula emissões para veículo híbrido baseado no estado da bateria
+        ANTES do consumo.
+        
+        Args:
+            distance: Distância percorrida em metros
+            battery_before: Nível de bateria antes do consumo
+            _consume_energy
+        Returns:
+            float: Emissões de CO₂ em gramas
+        """
+        from config import EMISSIONS_HYBRID_G_PER_KM
+        
+        distance_km = distance / 1000
+        vtype = self.vehicle_type
+        
+        # Consumo por km
+        battery_consumption_per_km = vtype.battery_consumption / 100 if vtype.battery_consumption > 0 else 0
+        
+        # Quantos km conseguia percorrer com a bateria que tinha
+        battery_distance_km = battery_before / battery_consumption_per_km if battery_consumption_per_km > 0 else 0
+        
+        # Se tinha bateria suficiente para toda a distância, não emitiu
+        if battery_distance_km >= distance_km:
+            return 0.0
+        
+        # Caso contrário, emitiu apenas pela parte em combustível
+        fuel_distance_km = distance_km - battery_distance_km
+        return EMISSIONS_HYBRID_G_PER_KM * fuel_distance_km
     
     def get_environmental_impact(self) -> Dict[str, Any]:
         """

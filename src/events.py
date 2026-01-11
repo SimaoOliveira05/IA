@@ -153,6 +153,7 @@ class EventManager:
         else:
             print(f"⚠ Aviso: Estrada {node_id1} ↔ {node_id2} não encontrada")
     
+    
     def get_weather_at_node(self, node_id, current_time=None):
         """
         Retorna a condição climática de um nó num determinado momento.
@@ -233,22 +234,7 @@ class EventManager:
         traffic = self.get_traffic_at_node(node_id, current_time)
         return traffic.get_time_multiplier()
     
-    def get_combined_multiplier(self, node_id, current_time=None):
-        """
-        Retorna o fator multiplicador combinado (clima + trânsito) para um nó.
-        
-        Args:
-            node_id: ID do nó
-            current_time: Tempo atual em minutos (opcional)
-            
-        Returns:
-            float: Fator multiplicador combinado de tempo
-        """
-        weather_mult = self.get_weather_multiplier(node_id, current_time)
-        traffic_mult = self.get_traffic_multiplier(node_id, current_time)
-        # Combina os multiplicadores (efeito composto)
-        return weather_mult * traffic_mult
-    
+
     def apply_events_to_edges(self, current_time=None):
         """
         Aplica os efeitos de clima e trânsito aos tempos das arestas do grafo.
@@ -261,7 +247,7 @@ class EventManager:
         
         for node_id, edges in self.graph.edges.items():
             # Obtém multiplicadores para este nó de origem
-            combined_mult = self.get_combined_multiplier(node_id, current_time)
+            combined_mult = self.get_weather_multiplier(node_id, current_time) * self.get_traffic_multiplier(node_id, current_time)
             
             for edge in edges:
                 # Guarda o tempo base se ainda não foi guardado
@@ -282,19 +268,6 @@ class EventManager:
         
         if affected_edges > 0:
             print(f"✓ Efeitos de clima e trânsito aplicados a {affected_edges} arestas")
-    
-    def is_road_open(self, node_id1, node_id2):
-        """
-        Verifica se uma estrada está aberta.
-        
-        Args:
-            node_id1, node_id2: IDs dos nós
-            
-        Returns:
-            bool: True se aberta, False se fechada
-        """
-        return (node_id1, node_id2) not in self.closed_roads and \
-               (node_id2, node_id1) not in self.closed_roads
     
     def summary(self):
         """Imprime resumo dos eventos configurados."""

@@ -6,6 +6,8 @@ from vehicle import Vehicle, Eletric, Combustion, Hybrid, Vehicle_Status
 from request import Request
 from events import load_events_from_config
 
+
+
 class Database:
     '''
     Represents the current database of a simulation

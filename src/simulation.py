@@ -59,7 +59,6 @@ class Simulation:
         # Aplica eventos iniciais (clima/trânsito) no início da simulação
         if database.event_manager:
             database.event_manager.apply_events_to_edges(self.current_time)
-        self.search_times = []  # Lista de tempos de cada procura (em ms)
     
     def search_algorithm(self, start, goal, graph, vehicle=None):
         """
@@ -132,10 +131,6 @@ class Simulation:
         """Verifica se a simulação terminou."""
         return self.current_time >= self.end_time
     
-
-    def get_available_vehicles(self):
-        """Retorna lista de veículos disponíveis (IDLE)."""
-        return [v for v in self.vehicles if v.status.name == 'IDLE']
     
     def get_available_vehicles_for_request(self, request):
         """
@@ -148,8 +143,7 @@ class Simulation:
         Returns:
             Lista de veículos disponíveis e compatíveis
         """
-        available = self.get_available_vehicles()
-        
+        available = [v for v in self.vehicles if v.status.name == 'IDLE']
         # Filtra por preferência ambiental
         if request.eco_friendly:
             # Apenas veículos elétricos
@@ -182,6 +176,7 @@ class Simulation:
         best_paths = None
         best_refuel_info = None
         best_real_distance = 0.0  # Inicializa para evitar erro se nenhum veículo for compatível
+        station_type = None  # Inicializa para evitar NameError
         
         for vehicle in available_vehicles:
             # Verifica se o veículo tem capacidade suficiente para o pedido
@@ -268,9 +263,6 @@ class Simulation:
             
             # Se precisa abastecer, adiciona informação ao veículo
             if refuel_needed and refuel_station and refuel_path:
-                print(f"⚠ Veículo {best_vehicle.id} precisa abastecer!")
-                print(f"   Estação: Nó {refuel_station.id} ({refuel_station.node_type})")
-                print(f"   Tempo de abastecimento: {refuel_time:.1f} min")
                 
                 # Passa informação de abastecimento (incluindo tipo de estação)
                 refuel_info = (refuel_path, refuel_station.id, refuel_time, station_type)
@@ -285,7 +277,6 @@ class Simulation:
                 refuel_info=refuel_info
             )
             
-            # Atualiza estatísticas - USA DISTÂNCIA REAL, não o tempo otimizado
             self.stats['total_distance'] += best_real_distance
             self.stats['total_time'] += time_to_pickup + trip_time
         
@@ -328,30 +319,12 @@ class Simulation:
             1 for r in self.requests if r.status in ['assigned', 'picked_up']
         )
         
-        # Calcula custo total de combustível
-        from refuel_config import PRECO_BATERIA, PRECO_COMBUSTIVEL
-        from vehicle.vehicle_types import Eletric, Combustion, Hybrid
+        # Calcula custo total de combustível usando função centralizada
+        from utils.vehicle_costs import calculate_total_fuel_cost_consumed
         
         total_fuel_cost = 0.0
         for vehicle in self.vehicles:
-            vtype = vehicle.vehicle_type
-            
-            if isinstance(vtype, Eletric):
-                # Custo = energia consumida * preço bateria
-                energia_consumida = vtype.battery_capacity - vtype.current_battery
-                total_fuel_cost += energia_consumida * PRECO_BATERIA
-            
-            elif isinstance(vtype, Combustion):
-                # Custo = combustível consumido * preço combustível
-                combustivel_consumido = vtype.fuel_capacity - vtype.current_fuel
-                total_fuel_cost += combustivel_consumido * PRECO_COMBUSTIVEL
-            
-            elif isinstance(vtype, Hybrid):
-                # Custo = energia + combustível consumidos
-                energia_consumida = vtype.battery_capacity - vtype.current_battery
-                combustivel_consumido = vtype.fuel_capacity - vtype.current_fuel
-                total_fuel_cost += (energia_consumida * PRECO_BATERIA + 
-                                   combustivel_consumido * PRECO_COMBUSTIVEL)
+            total_fuel_cost += calculate_total_fuel_cost_consumed(vehicle.vehicle_type)
         
         self.stats['total_fuel_cost'] = total_fuel_cost
         
@@ -386,7 +359,6 @@ class Simulation:
         # Aplica eventos de clima/trânsito baseados no tempo atual
         # (atualiza tempos das arestas a cada 30 minutos de simulação)
         if self.db.event_manager and self.current_time % 30 == 0:
-            print("Aplicando eventos de clima/trânsito...")
             self.db.event_manager.apply_events_to_edges(self.current_time)
         
         # Processa novos requests
@@ -407,20 +379,7 @@ class Simulation:
             'new_requests': new_requests,
             'stats': self.stats.copy()
         }
-    
-    def run_batch(self):
-        """
-        Executa a simulação completa sem visualização.
-        Útil para testes e benchmarks.
-        
-        Returns:
-            dict: Estatísticas finais
-        """
-        while not self.is_finished():
-            self.step()
-        
-        return self.stats
-    
+
     def get_time_string(self):
         """Retorna string formatada do tempo atual."""
         hours = self.current_time // 60

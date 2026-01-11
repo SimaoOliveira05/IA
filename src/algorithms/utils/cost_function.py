@@ -12,16 +12,27 @@ custos das arestas (uniform_cost e a_star).
 """
 from typing import Optional
 from vehicle.vehicle_types import VehicleType, Eletric, Combustion, Hybrid
-import sys
-import os
 
-# Adiciona o diretório pai ao path para imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from config import (
-    PRECO_BATERIA, PRECO_COMBUSTIVEL,
-    PESO_TEMPO, PESO_CUSTO, PESO_AMBIENTE,
-    TEMPO_BASE_MIN, CUSTO_BASE_EUR, EMISSOES_BASE_G
-)
+# Constantes importadas do config
+try:
+    from config import (
+        PRECO_BATERIA, PRECO_COMBUSTIVEL,
+        PESO_TEMPO, PESO_CUSTO, PESO_AMBIENTE,
+     CUSTO_BASE_EUR, EMISSOES_BASE_G
+    )
+    from utils.vehicle_costs import calculate_fuel_cost as calc_fuel_cost
+    from utils.vehicle_costs import calculate_emissions as calc_emissions
+except ImportError:
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from config import (
+        PRECO_BATERIA, PRECO_COMBUSTIVEL,
+        PESO_TEMPO, PESO_CUSTO, PESO_AMBIENTE,
+        CUSTO_BASE_EUR, EMISSOES_BASE_G
+    )
+    calc_fuel_cost = None
+    calc_emissions = None
 
 def calculate_edge_cost(
     distance: float,
@@ -39,17 +50,13 @@ def calculate_edge_cost(
     
     Args:
         distance: Distância da aresta em metros
-        time: Tempo base da aresta em minutos (pode já incluir trânsito/clima)
+        time: Tempo base da aresta em minutos (já inclui trânsito/clima)
         vehicle_type: Tipo de veículo (opcional, para cálculos precisos)
     
     Returns:
         float: Custo unificado da aresta (valor normalizado)
     """
     dist_km = distance / 1000.0
-    
-
-    # Tempo já vem em minutos, normaliza para a escala base
-    tempo_normalizado = time / TEMPO_BASE_MIN if TEMPO_BASE_MIN > 0 else time
 
     custo_euros = _calculate_operational_cost(dist_km, vehicle_type)
     custo_normalizado = custo_euros / CUSTO_BASE_EUR if CUSTO_BASE_EUR > 0 else custo_euros
@@ -61,7 +68,7 @@ def calculate_edge_cost(
     # CUSTO FINAL: média ponderada dos critérios
     # =========================================================================
     custo_total = (
-        PESO_TEMPO * tempo_normalizado +
+        PESO_TEMPO * time +
         PESO_CUSTO * custo_normalizado +
         PESO_AMBIENTE * ambiente_normalizado
     )
@@ -74,6 +81,7 @@ def calculate_edge_cost(
 def _calculate_operational_cost(dist_km: float, vehicle_type: Optional[VehicleType]) -> float:
     """
     Calcula o custo operacional em euros para uma distância.
+    Usa função centralizada do módulo utils.
     
     Args:
         dist_km: Distância em quilómetros
@@ -82,48 +90,36 @@ def _calculate_operational_cost(dist_km: float, vehicle_type: Optional[VehicleTy
     Returns:
         float: Custo em euros
     """
+    if calc_fuel_cost is not None:
+        return calc_fuel_cost(vehicle_type, dist_km)
+    
+    # Fallback se utils não disponível
     if vehicle_type is None:
-        # Sem veículo especificado, usa custo médio
         return dist_km * CUSTO_BASE_EUR
     
     if isinstance(vehicle_type, Eletric):
-        # Custo elétrico: consumo (kWh/100km) * distância * preço
         energia_kwh = (vehicle_type.battery_consumption / 100.0) * dist_km
         return energia_kwh * PRECO_BATERIA
-    
     elif isinstance(vehicle_type, Combustion):
-        # Custo combustão: consumo (L/100km) * distância * preço
         combustivel_l = (vehicle_type.fuel_consumption / 100.0) * dist_km
         return combustivel_l * PRECO_COMBUSTIVEL
-    
     elif isinstance(vehicle_type, Hybrid):
-        # Híbrido: prioriza bateria, depois combustível
         consumo_bateria_por_km = vehicle_type.battery_consumption / 100.0
         consumo_combustivel_por_km = vehicle_type.fuel_consumption / 100.0
-        
-        # Quantos km consegue fazer com bateria atual
-        if consumo_bateria_por_km > 0:
-            bateria_km = vehicle_type.current_battery / consumo_bateria_por_km
-        else:
-            bateria_km = 0
-        
+        bateria_km = vehicle_type.current_battery / consumo_bateria_por_km if consumo_bateria_por_km > 0 else 0
         if dist_km <= bateria_km:
-            # Toda a viagem com bateria
-            energia_kwh = consumo_bateria_por_km * dist_km
-            return energia_kwh * PRECO_BATERIA
+            return consumo_bateria_por_km * dist_km * PRECO_BATERIA
         else:
-            # Parte com bateria, resto com combustível
             energia_kwh = consumo_bateria_por_km * bateria_km
             combustivel_l = consumo_combustivel_por_km * (dist_km - bateria_km)
             return energia_kwh * PRECO_BATERIA + combustivel_l * PRECO_COMBUSTIVEL
-    
-    # Fallback
     return dist_km * CUSTO_BASE_EUR
 
 
 def _calculate_emissions(dist_km: float, vehicle_type: Optional[VehicleType]) -> float:
     """
     Calcula as emissões de CO₂ em gramas para uma distância.
+    Usa função centralizada do módulo utils.
     
     Args:
         dist_km: Distância em quilómetros
@@ -132,36 +128,27 @@ def _calculate_emissions(dist_km: float, vehicle_type: Optional[VehicleType]) ->
     Returns:
         float: Emissões em gramas de CO₂
     """
+    if calc_emissions is not None:
+        return calc_emissions(vehicle_type, dist_km)
+    
+    # Fallback se utils não disponível
+    from config import EMISSIONS_COMBUSTION_G_PER_KM, EMISSIONS_HYBRID_G_PER_KM
+    
     if vehicle_type is None:
-        # Sem veículo, assume média de 120 g/km (combustão típica)
-        return 120.0 * dist_km
+        return EMISSIONS_COMBUSTION_G_PER_KM * dist_km
     
     if isinstance(vehicle_type, Eletric):
-        # Elétricos não têm emissões diretas
         return 0.0
-    
     elif isinstance(vehicle_type, Combustion):
-        # Combustão: ~2.3kg CO₂ por litro de gasolina
-        consumo_por_km = vehicle_type.fuel_consumption / 100.0
-        return consumo_por_km * 2300.0 * dist_km
-    
+        return EMISSIONS_COMBUSTION_G_PER_KM * dist_km
     elif isinstance(vehicle_type, Hybrid):
-        # Híbrido: depende de quanto usa de cada
         consumo_bateria_por_km = vehicle_type.battery_consumption / 100.0
-        consumo_combustivel_por_km = vehicle_type.fuel_consumption / 100.0
-        
-        if consumo_bateria_por_km > 0:
-            bateria_km = vehicle_type.current_battery / consumo_bateria_por_km
-        else:
-            bateria_km = 0
-        
+        bateria_km = vehicle_type.current_battery / consumo_bateria_por_km if consumo_bateria_por_km > 0 else 0
         if dist_km <= bateria_km:
-            # Toda a viagem com bateria (sem emissões)
             return 0.0
         else:
-            # Só a parte com combustível gera emissões
-            combustao_km = dist_km - bateria_km
-            return consumo_combustivel_por_km * 2300.0 * combustao_km
+            return EMISSIONS_HYBRID_G_PER_KM * (dist_km - bateria_km)
+    return EMISSIONS_COMBUSTION_G_PER_KM * dist_km
     
     # Fallback
     return 120.0 * dist_km

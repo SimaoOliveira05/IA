@@ -188,34 +188,6 @@ def run_simulation(database):
     print(f"Tempo mínimo:         {stats.get('search_time_min_ms', 0):.4f} ms")
     print(f"Tempo máximo:         {stats.get('search_time_max_ms', 0):.4f} ms")
     
-    # Estatísticas ambientais
-    print("\n" + "-"*60)
-    print("           🌱 IMPACTO AMBIENTAL")
-    print("-"*60)
-    
-    total_emissions = 0.0
-    total_distance = 0.0
-    
-    for vehicle in simulation.vehicles:
-        impact = vehicle.get_environmental_impact()
-        total_emissions += impact['total_emissions_g']
-        total_distance += impact['total_distance_km']
-        
-        vehicle_type_name = type(vehicle.vehicle_type).__name__
-        emoji = "⚡" if vehicle_type_name == "Eletric" else "🔥" if vehicle_type_name == "Combustion" else "🔋"
-        
-        print(f"{emoji} {vehicle.name} ({vehicle_type_name}):")
-        print(f"   Distância: {impact['total_distance_km']:.2f} km")
-        print(f"   Emissões: {impact['total_emissions_g']:.1f}g CO₂")
-        if impact['total_distance_km'] > 0:
-            print(f"   Média: {impact['average_emissions_per_km']:.1f}g CO₂/km")
-    
-    print(f"\n🌍 TOTAL DA FROTA:")
-    print(f"   Distância: {total_distance:.2f} km")
-    print(f"   Emissões: {total_emissions:.1f}g CO₂ ({total_emissions/1000:.3f} kg)")
-    if total_distance > 0:
-        print(f"   Média: {total_emissions/total_distance:.1f}g CO₂/km")
-    
     # Função de Custo Total com pesos iguais
     print("\n" + "-"*60)
     print("           💰 FUNÇÃO DE CUSTO TOTAL")
@@ -504,10 +476,7 @@ def main():
         choice = input("\nEscolha [1/2]: ").strip()
         
         if choice == '2':
-            print("\nQuantos minutos por tick? (recomendado: 5 para execução rápida)")
-            time_step_input = input("Time step [1/2/5] (default 5): ").strip()
-            time_step = int(time_step_input) if time_step_input in ['1', '2', '5'] else 5
-            run_all_simulations(database, time_step=time_step)
+            run_all_simulations(database, time_step=5)
         else:
             run_simulation(database)
 

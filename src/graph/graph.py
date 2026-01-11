@@ -1,12 +1,15 @@
 from graph.node import Node
 from graph.position import Position
 import matplotlib.pyplot as plt
-import sys
-import os
 
-# Adiciona o diretório pai ao path para imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import SCALE_FACTOR, DEFAULT_EDGE_SPEED_KMH
+# Constantes importadas do config
+try:
+    from config import SCALE_FACTOR, DEFAULT_EDGE_SPEED_KMH
+except ImportError:
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from config import SCALE_FACTOR, DEFAULT_EDGE_SPEED_KMH
 
 class Graph:
     def calculate_path_metrics(self, path):
@@ -48,9 +51,9 @@ class Graph:
         self.directed = directed
         self.next_id = 0
 
-    def add_node(self, x, y, node_type="generic", capacity=0):
+    def add_node(self, x, y, node_type="generic"):
         position = Position(x, y)
-        node = Node(self.next_id, position, node_type=node_type, capacity=capacity)
+        node = Node(self.next_id, position, node_type=node_type)
         node.set_id(self.next_id)
 
         self.nodes.append(node)

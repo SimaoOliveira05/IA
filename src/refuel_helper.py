@@ -3,7 +3,7 @@ Funções auxiliares para gestão de abastecimento/recarga de veículos.
 """
 
 from vehicle.vehicle import Eletric, Combustion, Hybrid
-from refuel_config import REFUEL_TIME, RECHARGE_TIME, SAFETY_MARGIN
+from config import REFUEL_TIME, RECHARGE_TIME, SAFETY_MARGIN
 
 
 def needs_refuel(vehicle, distance):

@@ -79,7 +79,6 @@ def a_star(start: Position, goal: Position, graph: Graph, criterion: str = 'dist
                 continue
             neighbor = graph.get_node(edge["target"])
             
-            # g(n) é o custo unificado (tempo, custo operacional, satisfação, ambiente)
             edge_distance = edge.get("distance", 0.0)
             edge_time = edge.get("time", 0.0)
             edge_cost = calculate_edge_cost(edge_distance, edge_time, vehicle_type)
