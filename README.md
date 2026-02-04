@@ -1,4 +1,4 @@
-# IA
+# UberUM
 
 Taxi fleet management simulation system for the city of Braga, developed for an Artificial Intelligence course. The project implements multiple search algorithms (informed and uninformed) for route optimization, considering factors such as time, operational cost, environmental impact, and traffic/weather conditions.
 
